@@ -96,7 +96,12 @@
     <strong>Shared computer?</strong> Anyone with access to this browser profile can read a
     saved key. Use Clear saved data when you are done, and rotate the key if you are unsure.
   </div>
-  <div style="margin-top:14px"><button id="saveKey">Save key</button></div>
+  <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button id="saveKey">Save key</button>
+    <button id="testKey" class="ghost">Test key</button>
+    <span id="keyStat" class="hint"></span>
+  </div>
+  <div id="keyDiag" class="note hidden" style="font-family:var(--mono);font-size:12px"></div>
 </section>
 
 <section id="profile" class="panel hidden">
@@ -197,11 +202,79 @@ if (!store.persistent){
 $("key").value = store.get(K_KEY);
 $("prof").value = store.get(K_PROF);
 refreshProfStat();
+{
+  const k = store.get(K_KEY);
+  $("keyStat").textContent = k ? `Saved, ${k.length} characters.` : "";
+}
 
 $("saveKey").onclick = () => {
-  store.set(K_KEY, $("key").value.trim());
-  toggle("setup", false);
+  const k = $("key").value.trim();
+  store.set(K_KEY, k);
+  $("keyStat").textContent = k ? `Saved, ${k.length} characters.` : "Nothing saved.";
+  $("keyDiag").classList.add("hidden");
+  if (k && !/^sk-ant-/.test(k))
+    showDiag("This does not start with sk-ant-, so it is probably not an Anthropic API key. " +
+      "Console keys begin sk-ant-api03- and are about 100 characters.", true);
 };
+
+// Cheapest possible call. Turns a vague failure into the API's own words.
+$("testKey").onclick = async () => {
+  const k = ($("key").value.trim() || store.get(K_KEY)).trim();
+  if (!k){ showDiag("No key entered.", true); return; }
+  $("testKey").disabled = true; $("keyStat").textContent = "Testing...";
+  try {
+    const res = await fetch(API, {
+      method:"POST", headers: headers(k),
+      body: JSON.stringify({model:MODEL, max_tokens:1, messages:[{role:"user",content:"hi"}]})
+    });
+    const raw = await res.text();
+    if (res.ok){
+      $("keyStat").textContent = "";
+      showDiag("Key works. HTTP 200 from the API. You are ready to run.", false);
+    } else {
+      let e = {}; try { e = JSON.parse(raw).error || {}; } catch {}
+      $("keyStat").textContent = "";
+      showDiag(
+        `HTTP ${res.status} ${e.type || ""}\n${e.message || raw.slice(0,300)}\n\n${adviseKey(res.status, e)}`,
+        true);
+    }
+  } catch (err){
+    $("keyStat").textContent = "";
+    showDiag(`Could not reach the API at all.\n${err.name}: ${err.message}\n\n` +
+      "That is a network or browser issue, not a key issue. Check your connection " +
+      "and whether an extension is blocking requests.", true);
+  } finally { $("testKey").disabled = false; }
+};
+
+function showDiag(text, bad){
+  const d = $("keyDiag");
+  d.textContent = text;
+  d.classList.remove("hidden");
+  d.classList.toggle("warn", !!bad);
+}
+
+function adviseKey(status, e){
+  const m = (e.message || "").toLowerCase();
+  if (status === 401)
+    return "Anthropic does not recognise this key. Two common reasons:\n" +
+      "1. It is not an API key. Your Claude subscription (which Claude Code uses) is a " +
+      "separate product from the API. You need a key from console.anthropic.com, which " +
+      "has its own billing.\n" +
+      "2. The key was revoked, or a character is missing from a partial copy. Create a " +
+      "fresh one and paste the whole string.";
+  if (status === 400 && /credit|balance/.test(m))
+    return "The key is valid but the API account has no credit. Add a payment method and " +
+      "buy credit under Billing at console.anthropic.com. The API is prepaid and separate " +
+      "from a Claude subscription.";
+  if (status === 403)
+    return "The key is recognised but not permitted to call this model. Check the key's " +
+      "workspace permissions in the Console.";
+  if (status === 429)
+    return "Rate limited. The key works. Wait a minute and try again.";
+  if (status === 404)
+    return "The model id was rejected. Tell Claude Code, that is a bug in this page.";
+  return "Unexpected response. Paste this whole block to Claude Code.";
+}
 $("saveProf").onclick = () => {
   store.set(K_PROF, $("prof").value);
   refreshProfStat();
@@ -499,7 +572,9 @@ function setStatus(text, live){
   $("status").innerHTML = text ? `<span class="dot ${live?"live":""}"></span>${text}` : "";
 }
 function explain(m){
-  if (/401|authentication/i.test(m)) return "That API key was rejected. Check it in Setup.";
+  if (/401|authentication/i.test(m)) return "Anthropic rejected that API key. Open Setup and press " +
+    "Test key to see the exact reason. Note that an API key from console.anthropic.com is a " +
+    "separate product from your Claude subscription.";
   if (/429|rate_limit/i.test(m)) return "Rate limited by the API. Wait a minute and run it again.";
   if (/credit|billing/i.test(m)) return "The API account is out of credit. Top it up at console.anthropic.com.";
   if (/Failed to fetch|NetworkError/i.test(m)) return "Could not reach the API. Check your connection, then confirm the key is correct.";

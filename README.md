@@ -25,10 +25,18 @@ The key never touches a server of mine because there isn't one. Use **Clear save
 
 ## Setup
 
-1. Create an API key at [console.anthropic.com](https://console.anthropic.com).
+**An Anthropic API key is not the same thing as a Claude subscription.** Claude Code and
+claude.ai run on a Claude plan. The API is a separate product with its own prepaid billing.
+If you have never used console.anthropic.com, you do not have a key yet, and anything else
+you paste will come back as "API key is invalid".
+
+1. Create an API key at [console.anthropic.com](https://console.anthropic.com), then add a
+   payment method and buy credit under Billing.
 2. Open the site, paste the key under **Setup**.
-3. Paste your background under **My profile**: who you are, your stories, your numbers, what drives you, samples of how you actually write.
-4. Paste a job description and run it.
+3. Press **Test key**. It makes the cheapest possible call and shows you the API's own
+   response, so a failure tells you the actual reason instead of a guess.
+4. Paste your background under **My profile**: who you are, your stories, your numbers, what drives you, samples of how you actually write.
+5. Paste a job description and run it.
 
 A full run costs a few cents in API usage and takes a few minutes, most of it web search.
 
