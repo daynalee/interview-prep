@@ -60,7 +60,7 @@ Nothing personal is in this repository. Anyone else who opens the site gets an e
 
 ## Files
 
-- `index.html` — markup and styles
-- `app.js` — state, prompt builders, rendering
-- `profile.local.txt` — gitignored. If present, the page auto-loads it, so running locally
+- `index.html`: markup and styles
+- `app.js`: state, prompt builders, rendering
+- `profile.local.txt`: gitignored. If present, the page auto-loads it, so running locally
   needs no pasting. Never committed, never on the public site.
