@@ -119,10 +119,17 @@
     the site gets an empty tool.
   </p>
   <textarea id="prof" rows="16" placeholder="Paste your me/ files here, one after another."></textarea>
-  <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+  <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <button id="saveProf">Save profile</button>
+    <button id="pickProf" class="ghost">Load from file</button>
+    <input id="profFile" type="file" accept=".md,.txt,text/plain,text/markdown" class="hidden">
     <span id="profStat" class="hint"></span>
   </div>
+  <p class="hint">
+    Saved permanently in this browser, so this is a one-time step. You only do it again on a
+    different device or after Clear saved data. <strong>Load from file</strong> takes
+    <code>PROFILE-PASTE.md</code> straight off disk.
+  </p>
 </section>
 
 <section class="panel">
@@ -241,12 +248,40 @@ function refreshLiveHint(){
 }
 refreshLiveHint();
 
+(async () => {
+  try {
+    const r = await fetch("profile.local.txt", {cache:"no-store"});
+    if (!r.ok) return;                       // not present on the public site
+    const t = (await r.text()).trim();
+    if (!t || t.startsWith("<")) return;     // 404 page served as 200
+    $("prof").value = t;
+    store.set(K_PROF, t);
+    refreshProfStat();
+    $("profStat").textContent += " Auto-loaded from profile.local.txt.";
+    toggle("profile", false);
+  } catch {}
+})();
+
 $("saveKey").onclick = () => {
   const k = $("key").value.trim();
   store.set(K_KEY, k);
   $("keyStat").textContent = k ? `Saved, ${k.length} characters.` : "Nothing saved.";
   $("keyDiag").classList.add("hidden");
   refreshLiveHint();
+
+(async () => {
+  try {
+    const r = await fetch("profile.local.txt", {cache:"no-store"});
+    if (!r.ok) return;                       // not present on the public site
+    const t = (await r.text()).trim();
+    if (!t || t.startsWith("<")) return;     // 404 page served as 200
+    $("prof").value = t;
+    store.set(K_PROF, t);
+    refreshProfStat();
+    $("profStat").textContent += " Auto-loaded from profile.local.txt.";
+    toggle("profile", false);
+  } catch {}
+})();
   if (k && !/^sk-ant-/.test(k))
     showDiag("This does not start with sk-ant-, so it is probably not an Anthropic API key. " +
       "Console keys begin sk-ant-api03- and are about 100 characters.", true);
@@ -310,6 +345,18 @@ function adviseKey(status, e){
     return "The model id was rejected. Tell Claude Code, that is a bug in this page.";
   return "Unexpected response. Paste this whole block to Claude Code.";
 }
+$("pickProf").onclick = () => $("profFile").click();
+$("profFile").onchange = async e => {
+  const f = e.target.files?.[0];
+  if (!f) return;
+  const text = await f.text();
+  $("prof").value = text;
+  store.set(K_PROF, text);
+  refreshProfStat();
+  $("profStat").textContent += ` Loaded from ${f.name}.`;
+  e.target.value = "";
+};
+
 $("saveProf").onclick = () => {
   store.set(K_PROF, $("prof").value);
   refreshProfStat();
@@ -322,6 +369,20 @@ $("tClear").onclick = () => {
   if (!confirm("Remove your saved API key and profile from this browser?")) return;
   store.del(K_KEY); store.del(K_PROF);
   $("key").value = ""; $("prof").value = ""; refreshProfStat(); refreshLiveHint();
+
+(async () => {
+  try {
+    const r = await fetch("profile.local.txt", {cache:"no-store"});
+    if (!r.ok) return;                       // not present on the public site
+    const t = (await r.text()).trim();
+    if (!t || t.startsWith("<")) return;     // 404 page served as 200
+    $("prof").value = t;
+    store.set(K_PROF, t);
+    refreshProfStat();
+    $("profStat").textContent += " Auto-loaded from profile.local.txt.";
+    toggle("profile", false);
+  } catch {}
+})();
 };
 $("tSetup").onclick = () => toggle("setup");
 $("tProfile").onclick = () => toggle("profile");
