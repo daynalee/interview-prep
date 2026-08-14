@@ -172,6 +172,25 @@
   <textarea id="qs" rows="5" placeholder="Paste the application form questions or anything they sent in advance, one per line. Include any word or character limits they state."></textarea>
   <p class="hint">Leave this empty and it picks the usual questions for the round instead.</p>
 
+  <div class="row" style="margin-top:12px">
+    <div>
+      <label for="limitN">Length limit per answer (optional)</label>
+      <input id="limitN" type="number" min="1" step="1" placeholder="e.g. 500" inputmode="numeric">
+    </div>
+    <div>
+      <label for="limitUnit">Counted in</label>
+      <select id="limitUnit">
+        <option value="characters" selected>characters</option>
+        <option value="words">words</option>
+      </select>
+    </div>
+  </div>
+  <p class="hint">
+    Applies to every answer, unless a question above states its own limit, which wins.
+    Use the counter at the bottom of the page to check the result before you paste it into
+    their form.
+  </p>
+
   <label for="who">Interviewer names, if you have them (optional)</label>
   <input id="who" type="text" placeholder="Comma separated" spellcheck="false">
 
@@ -199,6 +218,16 @@
     <span id="copyStat" class="hint"></span>
   </div>
   <textarea id="promptText" rows="12" spellcheck="false" readonly></textarea>
+</section>
+
+<section class="panel">
+  <h2>Length check</h2>
+  <p class="hint" style="margin:0 0 10px">
+    Paste an answer here before you put it in their form. This counts it in your browser, which
+    is the only count that matters. A model's own reported count can be off.
+  </p>
+  <textarea id="counter" rows="5" placeholder="Paste one answer here."></textarea>
+  <div id="countOut" class="hint" style="margin-top:8px;font-family:var(--mono)"></div>
 </section>
 
 <div id="liveOut" class="hidden">
@@ -262,6 +291,11 @@ function refreshLiveHint(){
     ? "Or run it here to stream the output inline, billed to your saved API key."
     : "";
 }
+$("limitN").value = store.get("ia-limit-v1");
+$("limitUnit").value = store.get("ia-limitunit-v1") || "characters";
+$("limitN").addEventListener("input", () => store.set("ia-limit-v1", $("limitN").value));
+$("limitUnit").addEventListener("change", () => store.set("ia-limitunit-v1", $("limitUnit").value));
+
 refreshLiveHint();
 
 (async () => {
@@ -709,6 +743,31 @@ async function complete(key, base, messages, onText, signal){
   throw new Error("Stopped after 12 continuations. The research loop did not settle.");
 }
 
+/* ---------- length check ---------- */
+$("counter").addEventListener("input", () => {
+  const t = $("counter").value;
+  const chars = t.length;
+  const noSpaces = t.replace(/\s/g, "").length;
+  const words = t.trim() ? t.trim().split(/\s+/).length : 0;
+  const lim = parseInt(($("limitN").value || "").trim(), 10);
+  const unit = $("limitUnit").value;
+  let verdict = "";
+  if (lim > 0){
+    const actual = unit === "words" ? words : chars;
+    const over = actual - lim;
+    const u1 = unit.slice(0, -1);
+    const say = k => `${k} ${k === 1 ? u1 : unit}`;
+    verdict = over > 0
+      ? `  OVER by ${say(over)}. Cut it.`
+      : `  Fits, ${say(Math.abs(over))} spare.`;
+  }
+  const plural = (n, w) => `${n.toLocaleString()} ${w}${n === 1 ? "" : "s"}`;
+  $("countOut").textContent =
+    `${plural(chars,"character")} (${noSpaces.toLocaleString()} without spaces), ${plural(words,"word")}.${verdict}`;
+  $("countOut").style.color = (lim > 0 && (unit === "words" ? words : chars) > lim)
+    ? "var(--warn)" : "var(--muted)";
+});
+
 /* ---------- build prompt (no key, no cost) ---------- */
 function gather(){
   return {
@@ -718,8 +777,22 @@ function gather(){
     round: $("round").selectedOptions[0].textContent,
     who: $("who").value.trim(),
     qs: $("qs").value.trim(),
+    limitN: ($("limitN").value || "").trim(),
+    limitUnit: $("limitUnit").value,
     mode: $("mode").value
   };
+}
+
+function limitBlock(n, unit){
+  if (!n) return "";
+  return `
+HARD LENGTH LIMIT: every answer must be ${n} ${unit} or fewer. This is a form field that will
+reject or silently truncate anything longer, so treat it as a constraint, not a target.
+Count before you finish. State the exact ${unit} count in brackets after each answer, like
+[${unit === "characters" ? "487 characters" : "142 words"}]. If a draft is over, cut it and
+recount rather than leaving it over. If a question above states its own limit, that one wins
+for that question.
+`;
 }
 
 function pass2For(mode){
@@ -747,7 +820,7 @@ ${g.qs ? `
 THEY ASKED THESE EXACT QUESTIONS. Answer every one of them, in this order, and do not substitute your own list. Where a question states a word or character limit, obey it exactly and say the count you landed on. Where it does not, use the length guidance for the round.
 
 ${g.qs}
-` : ""}
+` : ""}${limitBlock(g.limitN, g.limitUnit)}
 
 ===== PASS 1: RESEARCH =====
 
@@ -865,7 +938,7 @@ ${$("qs").value.trim() ? `
 THEY ASKED THESE EXACT QUESTIONS. Answer every one, in this order, and do not substitute your own list. Obey any stated word or character limit exactly.
 
 ${$("qs").value.trim()}
-` : ""}
+` : ""}${limitBlock(($("limitN").value||"").trim(), $("limitUnit").value)}
 
 === THE CANDIDATE'S PROFILE (source of truth for everything about them) ===
 ${prof}

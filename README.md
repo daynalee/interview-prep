@@ -17,6 +17,16 @@ required**.
 - **Should I even apply.** Scores the role against your stated criteria and returns Apply,
   Apply if you can get a referral, or Skip. Designed to tell you no.
 
+## Length limits
+
+Set a limit and a unit (characters or words) and every answer is written to fit it, with the
+count stated in brackets so you can see it. A per-question limit written into the questions box
+overrides the global one. The setting persists between visits.
+
+Because a model's self-reported count can be off by a little, there is a **Length check** box
+at the bottom of the page: paste an answer, get the real count from your own browser, and see
+whether it fits. That is the count that decides whether their form accepts it.
+
 ## Their questions beat guessed ones
 
 There is an optional box for the questions they actually asked: application form fields,
