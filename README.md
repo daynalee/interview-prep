@@ -51,8 +51,10 @@ The key never touches a server of mine because there isn't one. Use **Clear save
 
 ## Setup
 
-1. Paste your background under **My profile**: who you are, your stories, your numbers, what
-   drives you, samples of how you actually write.
+1. Paste your background under **My profile**, or press **Load from file** and pick
+   `PROFILE-PASTE.md`. It saves itself as you type, so there is no button to remember and
+   nothing is lost on refresh. A badge in the top bar shows it is loaded. This is a one-time
+   step per browser.
 2. Paste a job description, set the round, press **Build my prompt**.
 3. Paste the result into Claude and send it.
 

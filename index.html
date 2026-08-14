@@ -79,6 +79,7 @@
 <div class="bar">
   <button id="tSetup" class="ghost">Setup</button>
   <button id="tProfile" class="ghost">My profile</button>
+  <span id="profBadge" class="hint" style="margin:0;align-self:center"></span>
   <span style="flex:1"></span>
   <button id="tClear" class="ghost">Clear saved data</button>
 </div>
@@ -120,15 +121,17 @@
   </p>
   <textarea id="prof" rows="16" placeholder="Paste your me/ files here, one after another."></textarea>
   <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <button id="saveProf">Save profile</button>
-    <button id="pickProf" class="ghost">Load from file</button>
+    <button id="pickProf" class="primary">Load from file</button>
+    <button id="saveProf" class="ghost">Save now</button>
     <input id="profFile" type="file" accept=".md,.txt,text/plain,text/markdown" class="hidden">
     <span id="profStat" class="hint"></span>
   </div>
   <p class="hint">
-    Saved permanently in this browser, so this is a one-time step. You only do it again on a
-    different device or after Clear saved data. <strong>Load from file</strong> takes
-    <code>PROFILE-PASTE.md</code> straight off disk.
+    <strong>This saves itself as you type or paste.</strong> There is no button to remember and
+    nothing to lose on refresh. It persists in this browser permanently, so it is a one-time
+    step: you only redo it on a different device or after Clear saved data.
+    <strong>Load from file</strong> takes <code>PROFILE-PASTE.md</code> straight off disk, which
+    is the fastest way to do it.
   </p>
 </section>
 
@@ -355,6 +358,18 @@ function adviseKey(status, e){
     return "The model id was rejected. Tell Claude Code, that is a bug in this page.";
   return "Unexpected response. Paste this whole block to Claude Code.";
 }
+let profTimer = null;
+function autosaveProfile(){
+  clearTimeout(profTimer);
+  profTimer = setTimeout(() => {
+    store.set(K_PROF, $("prof").value);
+    refreshProfStat();
+    $("profStat").textContent += " Saved automatically.";
+  }, 400);
+}
+$("prof").addEventListener("input", autosaveProfile);
+$("prof").addEventListener("paste", () => setTimeout(autosaveProfile, 0));
+
 $("pickProf").onclick = () => $("profFile").click();
 $("profFile").onchange = async e => {
   const f = e.target.files?.[0];
@@ -374,6 +389,14 @@ $("saveProf").onclick = () => {
 function refreshProfStat(){
   const n = ($("prof").value || "").trim().length;
   $("profStat").textContent = n ? `Saved, ${n.toLocaleString()} characters.` : "Nothing saved yet.";
+  const b = $("profBadge");
+  if (n){
+    b.textContent = `Profile loaded (${Math.round(n/1024)}KB)`;
+    b.style.color = "var(--accent)";
+  } else {
+    b.textContent = "No profile saved";
+    b.style.color = "var(--warn)";
+  }
 }
 $("tClear").onclick = () => {
   if (!confirm("Remove your saved API key and profile from this browser?")) return;
