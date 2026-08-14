@@ -7,6 +7,16 @@ Paste a job description, get a researched company dossier and interview answers 
 Single static HTML file. No build step, no backend, no dependencies, **and no API key
 required**.
 
+## Three modes
+
+- **Interview prep.** Dossier, fit map, answers, follow-up drilling, six researched questions
+  to ask them, weakest-answer critique.
+- **Application materials.** Cover letter, a short-answer bank at two lengths for application
+  forms, resume vocabulary alignment against the posting, referral and recruiter notes, and an
+  honest read on whether the application is worth the time.
+- **Should I even apply.** Scores the role against your stated criteria and returns Apply,
+  Apply if you can get a referral, or Skip. Designed to tell you no.
+
 ## Two ways to run it
 
 **Build my prompt (default, free).** The page assembles your profile, the job description,

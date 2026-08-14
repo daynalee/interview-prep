@@ -140,6 +140,16 @@
       <input id="co" type="text" placeholder="Company name" spellcheck="false">
     </div>
     <div>
+      <label for="mode">What do you need</label>
+      <select id="mode">
+        <option value="interview" selected>Interview prep</option>
+        <option value="apply">Application materials</option>
+        <option value="screen">Should I even apply</option>
+      </select>
+    </div>
+  </div>
+  <div class="row" id="roundRow">
+    <div>
       <label for="round">Round</label>
       <select id="round">
         <option value="recruiter">Recruiter screen</option>
@@ -486,13 +496,97 @@ Every meaningful line of the job description mapped to the specific thing in the
 ## Answers
 The questions that matter for this round. For each: the answer, then a one-line SPINE giving the three beats to remember so they can rebuild it in the room instead of reciting it, then SOURCES naming the dossier facts used.
 
+## Follow-up drilling
+Interviews are lost in the follow-ups, not the openers. For each answer above, give the two or three probes a sharp interviewer would actually ask next, and a one or two sentence response to each. Prioritize:
+- The number that invites "how did you get to that?" or "over what period?"
+- The claim that invites "what would you have done if that had not worked?"
+- The part of the story where the candidate's own role is least specified, which invites "what did YOU do versus the team?"
+- Any gap or boundary the answer names, which invites "so how would you handle X here?"
+Mark any probe the profile cannot currently answer as UNPREPARED and say what the candidate needs to go find out.
+
 ## Questions for them
-From the research, not a generic list. A question about a tension the research surfaced is worth ten polite ones.
+Six questions, each built from something in the dossier, grouped as follows. Never a question whose answer is on their website, and never one that is really a statement about the candidate.
+
+1. Two on **the hard problem**. Draw on the business-reality and tension sections. These prove she read past the careers page. Frame as curiosity about how they are thinking, not as a challenge: "how are you weighing X against Y" rather than "isn't X a problem."
+2. One on **the role's real shape**. What does success look like at 6 and 12 months, what has made previous people in adjacent roles succeed or struggle, what is on the roadmap that this hire would own.
+3. One on **how the team actually operates**, drawn from the team-texture read. Test the [INFERRED] conclusion rather than asserting it: if the read says fast and flat, ask how decisions get made when two people disagree.
+4. One for **this specific interviewer**, from what was found about them or from their function. If nothing was found, one about their own experience of the team.
+5. One **honest reciprocal question**: something she genuinely needs to know to decide whether to take the job. Growth path, how performance is judged, why the role is open, what would make them not hire someone.
+
+For each question give the question itself, one line on why it lands, and one line on what a bad answer from them would tell her. The last part matters: this is her interview of them too.
 
 ## Weakest answer
 Read your own drafts back as an interviewer would hear them. Name the weakest one and why.
 
+## Where the profile is thin
+List anything marked [NEEDS DETAIL] or [DAYNA] in the profile that would have improved these specific answers, and what to go add. Be concrete and short.
+
 FINAL TEST on every answer: swap in a different company name. If it still works, it is not finished. Something in it must be unusable anywhere else.`;
+
+const APPLY_SYS = `You write application materials from a research dossier and the candidate's own profile.
+
+THE PROFILE IS THE SOURCE OF TRUTH. Never invent an accomplishment, a metric, or a job detail. Use figures exactly as written, never rounded up. Only [VERIFIED] dossier facts may be stated about the company.
+
+HARD LANGUAGE RULES:
+- No em dashes, no en dashes, no arrow chains. Periods, commas, colons, parentheses. Ranges as "3 to 5".
+- Banned: leverage, synergy, passionate about, excited about the opportunity, deep dive, circle back, at the end of the day, game changer, best in class, thought leader, I thrive in, wear many hats, hit the ground running, I believe I would be a great fit.
+- Short sentences. Plain words. No throat-clearing openers.
+
+Produce, in markdown:
+
+## Cover letter
+Under 300 words, four paragraphs.
+1. Open with the single strongest, most specific claim about what she has done, with the number. Not "I am writing to apply."
+2. The specific verified thing about this company that makes her want this role, and why her actual experience connects to it.
+3. The proof: one story compressed to three sentences, with the mechanism and the result.
+4. One line close. No "I look forward to hearing from you" filler.
+Never restate the job description. Never explain that she is qualified; show it and stop.
+
+## Short answer bank
+Application forms ask the same handful of questions in a box with a character limit. Draft each at two lengths, roughly 60 words and roughly 150, so she can paste whichever fits:
+- Why do you want to work here
+- Why are you a good fit for this role
+- What interests you about this team or product
+- Anything else we should know
+Plus any question the posting itself asks.
+
+## Resume alignment
+Compare the profile against the posting, and produce:
+- **Their vocabulary versus hers.** Terms the posting uses repeatedly that her CV words differently. Give the swap, and only where it is honest. Never invent experience to match a keyword.
+- **Bullets to lead with** for this specific application, in priority order, and which to cut.
+- **Requirements her CV does not currently evidence at all**, and whether the profile contains something that could.
+
+## Referral and outreach
+Two short messages, five sentences maximum each, no flattery:
+- A LinkedIn note to someone who works there
+- A note to a recruiter or hiring manager
+Each must reference one specific verified thing and make one clear ask.
+
+## The honest read
+Is this application worth the time. Say plainly where she is strong, where she is a stretch, and what would make a reviewer pass. Do not be encouraging by default.`;
+
+const SCREEN_SYS = `You decide whether a role is worth applying to. You are a filter, not a cheerleader. The candidate's time is the scarce resource, and telling her to apply to a role she will not get, or would not accept, costs her more than a blunt no.
+
+Use her stated search criteria in the profile as hard filters. Use the [VERIFIED] dossier facts for everything about the company.
+
+Produce, in markdown:
+
+## Verdict
+One of: **Apply**, **Apply if you can get a referral**, or **Skip**. One sentence of reasoning. Lead with this.
+
+## Against her stated criteria
+A table, one row per criterion from her profile (location and work model, company size, team using AI, comp target, anything else stated). For each: what the posting or dossier actually says, and pass, fail, or unknown. Mark comp UNKNOWN rather than guessing; if the posting states a range, compare it to her target and say plainly whether it clears her floor.
+
+## Likelihood
+Honest read on whether she would clear the bar, given the posting's requirements against her profile. Name the specific requirements she does not meet. Distinguish a hard filter (years of direct experience in a named platform) from a soft preference.
+
+## What would change the answer
+The one or two things that would move this from Skip to Apply, or from Apply to a strong Apply. A referral, a specific gap closed, a different role at the same company.
+
+## If she applies anyway
+The single angle to lead with, and the one thing to leave out.
+
+No em dashes or en dashes. Be direct. If the answer is skip, say skip in the first line.`;
 
 /* ---------- API ---------- */
 function headers(key){
@@ -594,26 +688,42 @@ function gather(){
     jd: $("jd").value.trim(),
     co: $("co").value.trim(),
     round: $("round").selectedOptions[0].textContent,
-    who: $("who").value.trim()
+    who: $("who").value.trim(),
+    mode: $("mode").value
   };
 }
 
+function pass2For(mode){
+  if (mode === "apply") return {label:"APPLICATION MATERIALS", sys:APPLY_SYS,
+    lead:"Once the dossier is done, write the application materials from it."};
+  if (mode === "screen") return {label:"GO OR NO GO", sys:SCREEN_SYS,
+    lead:"Once the dossier is done, decide whether this is worth applying to."};
+  return {label:"ANSWERS", sys:ANSWER_SYS,
+    lead:"Once the dossier is done, draft my answers from it."};
+}
+
 function buildPrompt(g){
-  return `I have an interview coming up. Do this in two passes and do not blend them, because doing both at once is what makes interview answers sound generic.
+  const p2 = pass2For(g.mode);
+  const opener = g.mode === "screen"
+    ? "I am deciding whether to apply for this role. Do this in two passes and do not blend them."
+    : g.mode === "apply"
+    ? "I am applying for this role. Do this in two passes and do not blend them, because research and writing done at once produces generic materials."
+    : "I have an interview coming up. Do this in two passes and do not blend them, because doing both at once is what makes interview answers sound generic.";
+  return `${opener}
 
 Company: ${g.co || "(identify it from the posting below)"}
-Round: ${g.round}
+${g.mode === "interview" ? `Round: ${g.round}` : ""}
 ${g.who ? `Interviewers: ${g.who}` : ""}
 
 ===== PASS 1: RESEARCH =====
 
 ${RESEARCH_SYS}
 
-===== PASS 2: ANSWERS =====
+===== PASS 2: ${p2.label} =====
 
-Once the dossier is done, draft my answers from it.
+${p2.lead}
 
-${ANSWER_SYS}
+${p2.sys}
 
 ===== MY PROFILE (source of truth about me) =====
 
@@ -628,6 +738,11 @@ async function copyText(t){
   try { await navigator.clipboard.writeText(t); return true; }
   catch { return false; }
 }
+
+$("mode").onchange = () => {
+  $("roundRow").classList.toggle("hidden", $("mode").value !== "interview");
+};
+$("mode").onchange();
 
 $("build").onclick = async () => {
   const g = gather();
@@ -674,6 +789,8 @@ $("go").onclick = async () => {
   abort = new AbortController();
   $("go").disabled = true; $("stop").classList.remove("hidden");
   $("liveOut").classList.remove("hidden");
+  $("tabA").textContent = pass2For($("mode").value).label === "ANSWERS" ? "Answers"
+    : pass2For($("mode").value).label === "APPLICATION MATERIALS" ? "Materials" : "Verdict";
   $("outD").textContent = ""; $("outA").textContent = "";
   $("emptyD").classList.add("hidden"); $("emptyA").classList.remove("hidden");
   $("cost").textContent = "";
@@ -700,15 +817,16 @@ Job description as provided by the candidate. If this is a bare URL, fetch what 
 ${jd}`}],
       t => { $("outD").textContent += t; }, abort.signal);
 
-    // Pass 2: answers. No search. Profile plus the dossier only.
-    setStatus("Drafting answers in your voice.", true);
+    // Pass 2: no search. Profile plus the dossier only.
+    const p2 = pass2For($("mode").value);
+    setStatus(`Writing: ${p2.label.toLowerCase()}.`, true);
     tab("A"); $("emptyA").classList.add("hidden");
     const answers = await complete(key, {
       model: MODEL, max_tokens: 32000,
-      system: ANSWER_SYS,
+      system: p2.sys,
       output_config: {effort:"high"}
     }, [{role:"user", content:
-`Interview round: ${roundName}. Calibrate answer length and depth to it.
+`${$("mode").value === "interview" ? `Interview round: ${roundName}. Calibrate answer length and depth to it.` : ""}
 
 === THE CANDIDATE'S PROFILE (source of truth for everything about them) ===
 ${prof}
