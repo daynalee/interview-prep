@@ -85,7 +85,13 @@
 
 <section id="setup" class="panel hidden">
   <h2>Setup</h2>
-  <label for="key">Anthropic API key</label>
+  <div class="note">
+    <strong>You probably do not need this.</strong> Build my prompt works with no key and no
+    cost. A key only matters if you want the answers streamed on this page instead of pasting
+    the prompt into Claude yourself. An Anthropic API key is a separate paid product from your
+    Claude subscription.
+  </div>
+  <label for="key" style="margin-top:14px">Anthropic API key (optional)</label>
   <input id="key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
   <p class="hint">
     Stored in this browser only (localStorage). It is never sent anywhere except
@@ -144,14 +150,36 @@
   </p>
   <label for="who">Interviewer names, if you have them (optional)</label>
   <input id="who" type="text" placeholder="Comma separated" spellcheck="false">
-  <div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <button id="go" class="primary">Run research and draft answers</button>
+
+  <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button id="build" class="primary">Build my prompt</button>
+    <button id="go" class="ghost">Run it here instead</button>
     <button id="stop" class="ghost hidden">Stop</button>
     <span id="status" class="status"></span>
   </div>
+  <p class="hint">
+    <strong>Build my prompt</strong> needs no API key and costs nothing. It assembles
+    everything into one prompt you paste into Claude, which then does the research and
+    writes the answers on your existing Claude plan.
+    <span id="liveHint"></span>
+  </p>
   <div id="err" class="err"></div>
 </section>
 
+<section id="promptOut" class="panel hidden">
+  <h2>Your prompt</h2>
+  <p class="hint" style="margin:0 0 10px">
+    Copied to your clipboard. Paste it into Claude Code or claude.ai and send it.
+    Claude will search the web, then draft the answers.
+  </p>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+    <button id="copyAgain">Copy again</button>
+    <span id="copyStat" class="hint"></span>
+  </div>
+  <textarea id="promptText" rows="12" spellcheck="false" readonly></textarea>
+</section>
+
+<div id="liveOut" class="hidden">
 <div class="tabs" role="tablist">
   <button id="tabD" role="tab" aria-selected="true">Dossier</button>
   <button id="tabA" role="tab" aria-selected="false">Answers</button>
@@ -160,6 +188,7 @@
   <div id="paneD"><pre id="outD"></pre><div id="emptyD" class="empty">Research appears here. Every fact is tagged VERIFIED with a source, INFERRED, or UNKNOWN.</div></div>
   <div id="paneA" class="hidden"><pre id="outA"></pre><div id="emptyA" class="empty">Answers appear here after the research pass finishes.</div></div>
   <div id="cost" class="cost"></div>
+</div>
 </div>
 
 </div>
@@ -202,16 +231,22 @@ if (!store.persistent){
 $("key").value = store.get(K_KEY);
 $("prof").value = store.get(K_PROF);
 refreshProfStat();
-{
-  const k = store.get(K_KEY);
-  $("keyStat").textContent = k ? `Saved, ${k.length} characters.` : "";
+function refreshLiveHint(){
+  const has = !!store.get(K_KEY);
+  $("keyStat").textContent = has ? `Saved, ${store.get(K_KEY).length} characters.` : "";
+  $("liveHint").textContent = has
+    ? "Run it here instead streams the output on this page using your saved API key, billed per run."
+    : "Run it here instead is optional and needs a paid Anthropic API key. Most people should ignore it.";
+  $("go").title = has ? "" : "Needs an Anthropic API key";
 }
+refreshLiveHint();
 
 $("saveKey").onclick = () => {
   const k = $("key").value.trim();
   store.set(K_KEY, k);
   $("keyStat").textContent = k ? `Saved, ${k.length} characters.` : "Nothing saved.";
   $("keyDiag").classList.add("hidden");
+  refreshLiveHint();
   if (k && !/^sk-ant-/.test(k))
     showDiag("This does not start with sk-ant-, so it is probably not an Anthropic API key. " +
       "Console keys begin sk-ant-api03- and are about 100 characters.", true);
@@ -286,7 +321,7 @@ function refreshProfStat(){
 $("tClear").onclick = () => {
   if (!confirm("Remove your saved API key and profile from this browser?")) return;
   store.del(K_KEY); store.del(K_PROF);
-  $("key").value = ""; $("prof").value = ""; refreshProfStat();
+  $("key").value = ""; $("prof").value = ""; refreshProfStat(); refreshLiveHint();
 };
 $("tSetup").onclick = () => toggle("setup");
 $("tProfile").onclick = () => toggle("profile");
@@ -295,7 +330,7 @@ function toggle(id, force){
   const show = force === undefined ? el.classList.contains("hidden") : force;
   el.classList.toggle("hidden", !show);
 }
-if (!store.get(K_KEY)) toggle("setup", true);
+if (!store.get(K_PROF)) toggle("profile", true);
 
 /* ---------- tabs ---------- */
 $("tabD").onclick = () => tab("D");
@@ -491,7 +526,71 @@ async function complete(key, base, messages, onText, signal){
   throw new Error("Stopped after 12 continuations. The research loop did not settle.");
 }
 
-/* ---------- run ---------- */
+/* ---------- build prompt (no key, no cost) ---------- */
+function gather(){
+  return {
+    prof: store.get(K_PROF).trim(),
+    jd: $("jd").value.trim(),
+    co: $("co").value.trim(),
+    round: $("round").selectedOptions[0].textContent,
+    who: $("who").value.trim()
+  };
+}
+
+function buildPrompt(g){
+  return `I have an interview coming up. Do this in two passes and do not blend them, because doing both at once is what makes interview answers sound generic.
+
+Company: ${g.co || "(identify it from the posting below)"}
+Round: ${g.round}
+${g.who ? `Interviewers: ${g.who}` : ""}
+
+===== PASS 1: RESEARCH =====
+
+${RESEARCH_SYS}
+
+===== PASS 2: ANSWERS =====
+
+Once the dossier is done, draft my answers from it.
+
+${ANSWER_SYS}
+
+===== MY PROFILE (source of truth about me) =====
+
+${g.prof}
+
+===== THE JOB DESCRIPTION =====
+
+${g.jd}`;
+}
+
+async function copyText(t){
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch { return false; }
+}
+
+$("build").onclick = async () => {
+  const g = gather();
+  $("err").textContent = "";
+  if (!g.prof){ toggle("profile", true); $("err").textContent = "Paste your profile first. Without it the answers are generic."; return; }
+  if (!g.jd){ $("err").textContent = "Paste the job description."; return; }
+
+  const p = buildPrompt(g);
+  $("promptText").value = p;
+  $("promptOut").classList.remove("hidden");
+  const ok = await copyText(p);
+  $("copyStat").textContent = ok
+    ? `Copied. ${p.length.toLocaleString()} characters.`
+    : `Clipboard blocked. Select all in the box below and copy manually. ${p.length.toLocaleString()} characters.`;
+  $("promptOut").scrollIntoView({behavior:"smooth", block:"start"});
+};
+
+$("copyAgain").onclick = async () => {
+  const ok = await copyText($("promptText").value);
+  $("copyStat").textContent = ok ? "Copied." : "Clipboard blocked. Select all in the box and copy manually.";
+  if (!ok){ $("promptText").focus(); $("promptText").select(); }
+};
+
+/* ---------- run live (needs key) ---------- */
 $("stop").onclick = () => { if (abort) abort.abort(); };
 
 $("go").onclick = async () => {
@@ -501,12 +600,19 @@ $("go").onclick = async () => {
   const co = $("co").value.trim();
 
   $("err").textContent = "";
-  if (!key){ toggle("setup", true); $("err").textContent = "Add your API key first."; return; }
+  if (!key){
+    toggle("setup", true);
+    $("err").textContent = "Running here needs an Anthropic API key, which is a separate paid " +
+      "product from your Claude subscription. You do not need it: use Build my prompt instead, " +
+      "which is free and runs on the Claude plan you already have.";
+    return;
+  }
   if (!prof){ toggle("profile", true); $("err").textContent = "Paste your profile first. Without it the answers are generic."; return; }
   if (!jd){ $("err").textContent = "Paste the job description."; return; }
 
   abort = new AbortController();
   $("go").disabled = true; $("stop").classList.remove("hidden");
+  $("liveOut").classList.remove("hidden");
   $("outD").textContent = ""; $("outA").textContent = "";
   $("emptyD").classList.add("hidden"); $("emptyA").classList.remove("hidden");
   $("cost").textContent = "";

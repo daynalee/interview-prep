@@ -4,7 +4,23 @@ Paste a job description, get a researched company dossier and interview answers 
 
 **Live: https://daynalee.github.io/interview-prep/**
 
-Single static HTML file. No build step, no backend, no dependencies.
+Single static HTML file. No build step, no backend, no dependencies, **and no API key
+required**.
+
+## Two ways to run it
+
+**Build my prompt (default, free).** The page assembles your profile, the job description,
+and the full research and voice instructions into one prompt, and copies it to your
+clipboard. Paste that into Claude Code or claude.ai and send it. Claude does the research
+and writes the answers on the Claude plan you already have. No key, no billing, nothing to
+set up.
+
+**Run it here (optional, paid).** If you save an Anthropic API key, the page can call the
+API directly from your browser and stream both passes inline. An Anthropic API key is a
+separate prepaid product from a Claude subscription, so most people should ignore this.
+
+There is no third option: a static page with no backend cannot call a paid model without
+somebody's key, and a shared key on a public page would let anyone spend it.
 
 ## How it works
 
@@ -25,20 +41,25 @@ The key never touches a server of mine because there isn't one. Use **Clear save
 
 ## Setup
 
+1. Paste your background under **My profile**: who you are, your stories, your numbers, what
+   drives you, samples of how you actually write.
+2. Paste a job description, set the round, press **Build my prompt**.
+3. Paste the result into Claude and send it.
+
+That is the whole setup. Nothing to install, nothing to pay for.
+
+### Optional: running it in the page instead
+
 **An Anthropic API key is not the same thing as a Claude subscription.** Claude Code and
 claude.ai run on a Claude plan. The API is a separate product with its own prepaid billing.
-If you have never used console.anthropic.com, you do not have a key yet, and anything else
-you paste will come back as "API key is invalid".
+If you have never used console.anthropic.com, you do not have a key, and anything else you
+paste comes back as "API key is invalid".
 
-1. Create an API key at [console.anthropic.com](https://console.anthropic.com), then add a
-   payment method and buy credit under Billing.
-2. Open the site, paste the key under **Setup**.
-3. Press **Test key**. It makes the cheapest possible call and shows you the API's own
-   response, so a failure tells you the actual reason instead of a guess.
-4. Paste your background under **My profile**: who you are, your stories, your numbers, what drives you, samples of how you actually write.
-5. Paste a job description and run it.
-
-A full run costs a few cents in API usage and takes a few minutes, most of it web search.
+If you want inline streaming anyway: create a key at
+[console.anthropic.com](https://console.anthropic.com), buy credit under Billing, paste it
+under **Setup**, then press **Test key**. That makes the cheapest possible call and shows
+the API's own response, so a failure names the actual reason instead of a guess. A run costs
+a few cents.
 
 ## Why the profile matters more than the research
 
