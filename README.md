@@ -6,7 +6,7 @@ background.
 
 **Live: https://daynalee.github.io/interview-prep/**
 
-Two static files, no build step, no backend, no dependencies, no API key.
+One static HTML file. No build step, no backend, no dependencies, no API key.
 
 ## The seven steps
 
@@ -60,7 +60,12 @@ Nothing personal is in this repository. Anyone else who opens the site gets an e
 
 ## Files
 
-- `index.html`: markup and styles
-- `app.js`: state, prompt builders, rendering
-- `profile.local.txt`: gitignored. If present, the page auto-loads it, so running locally
-  needs no pasting. Never committed, never on the public site.
+- `index.html`: everything. Deliberately one file. Splitting the script out introduced a real
+  failure mode: GitHub Pages caches each file separately for 10 minutes, so a browser could end
+  up with the markup and no script, which renders a page where nothing responds. One file cannot
+  skew against itself.
+- `profile.local.txt`: gitignored. If present, the page auto-loads it, so running locally needs
+  no pasting. Never committed, never on the public site.
+
+If the page ever does look dead, it now says so instead of failing silently, and a hard refresh
+(Cmd Shift R) is the fix.
