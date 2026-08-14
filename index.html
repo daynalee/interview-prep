@@ -98,6 +98,7 @@
     Used for every application. <strong>Saves itself as you type</strong>, so there is nothing to
     remember and nothing lost on refresh. Stored in this browser only, never in this site's source.
   </p>
+  <div id="profWhy" class="note" style="margin:0 0 12px"></div>
   <textarea id="prof" rows="12" placeholder="Paste your profile, or press Load from file."></textarea>
   <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <button id="pickProf" class="primary">Load from file</button>
@@ -744,7 +745,11 @@ $("prof").value = S.profile || "";
 let pt = null;
 $("prof").addEventListener("input", () => {
   clearTimeout(pt);
-  pt = setTimeout(() => { S.profile = $("prof").value; save(); renderBadges(); $("profStat").textContent = "Saved automatically."; }, 400);
+  pt = setTimeout(() => {
+    S.profile = $("prof").value; save(); renderBadges();
+    $("profStat").textContent = "Saved automatically.";
+    if (S.profile.trim()) why(`Saved in this browser. It loads automatically from now on, so you will not be asked again.`);
+  }, 400);
 });
 $("pickProf").onclick = () => $("profFile").click();
 $("profFile").onchange = async e => {
@@ -752,6 +757,7 @@ $("profFile").onchange = async e => {
   const t = await f.text();
   $("prof").value = t; S.profile = t; save(); renderBadges();
   $("profStat").textContent = `Loaded ${f.name}, ${t.length.toLocaleString()} characters.`;
+  why(`Saved in this browser. It loads automatically from now on, so you will not be asked again.`);
   e.target.value = "";
 };
 
@@ -782,17 +788,55 @@ $("importFile").onchange = async e => {
   e.target.value = "";
 };
 
-/* ---------- local profile auto-load (gitignored, never on the public site) ---------- */
+/* ---------- local profile auto-load, and an honest explanation either way ----------
+   profile.local.txt is gitignored. It exists when you run this from your own machine and
+   never exists on the public site, which is deliberate: the repo is public, so anything
+   committed to it is readable by anyone. */
+function why(html, warn){
+  const el = $("profWhy");
+  el.innerHTML = html;
+  el.classList.toggle("warn", !!warn);
+}
+
 (async () => {
-  if (S.profile.trim()) return;
+  const local = location.protocol === "file:";
+  const hosted = /github\.io$/.test(location.hostname);
+
+  if (local){
+    why(`<strong>You opened this as a file, so nothing will save.</strong> Browsers block
+      storage on <code>file://</code>, which means your profile is lost on every refresh and
+      that is why it keeps asking. Run <code>~/interview-web/run.sh</code> instead. It starts a
+      local server and loads your profile automatically.`, true);
+    return;
+  }
+
+  if (S.profile.trim()){
+    why(`Profile is saved in this browser and loads automatically. Nothing to do.`);
+    return;
+  }
+
   try {
     const r = await fetch("profile.local.txt", {cache:"no-store"});
-    if (!r.ok) return;
-    const t = (await r.text()).trim();
-    if (!t || t.startsWith("<")) return;
-    S.profile = t; $("prof").value = t; save(); renderBadges();
-    $("profStat").textContent = "Auto-loaded from profile.local.txt.";
+    if (r.ok){
+      const t = (await r.text()).trim();
+      if (t && !t.startsWith("<")){
+        S.profile = t; $("prof").value = t; save(); renderBadges();
+        $("profStat").textContent = "Auto-loaded from profile.local.txt.";
+        why(`Loaded automatically from <code>profile.local.txt</code> on this machine.`);
+        return;
+      }
+    }
   } catch {}
+
+  why(hosted
+    ? `<strong>One time on this device.</strong> Your profile is not in this site's code, and
+       will not be: the repository is public, so committing it would publish your salary
+       context, internal figures, and personal history to anyone who looks. Press
+       <strong>Load from file</strong> once and pick <code>PROFILE-PASTE.md</code>. It saves
+       itself in this browser and loads automatically every time after that. For zero setup on
+       your Mac, run <code>~/interview-web/run.sh</code> instead.`
+    : `No profile saved yet, and no <code>profile.local.txt</code> found next to this page.
+       Press <strong>Load from file</strong>, or run <code>~/interview-web/run.sh</code>.`);
 })();
 
 if (!store.persistent){

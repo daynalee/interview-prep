@@ -53,10 +53,30 @@ Nothing personal is in this repository. Anyone else who opens the site gets an e
 
 ## Setup
 
-1. Press **My profile** and either paste your background or press **Load from file**. It saves
-   itself as you type. One time per browser.
+**On your Mac, zero setup:**
+
+```
+~/interview-web/run.sh
+```
+
+That regenerates your profile from `~/interview-agent/me/`, starts a local server, and opens the
+page with everything preloaded.
+
+**On the hosted site, one time per device:** press **My profile**, then **Load from file**, and
+pick `PROFILE-PASTE.md`. It saves itself and loads automatically on every visit after that. The
+page tells you which situation you are in and why.
+
+Your profile is deliberately not in this repository. The repo is public, so committing it would
+publish your comp context, internal figures, and personal history to anyone who looks. One file
+pick per device is the price of that not happening.
+
+1. Get your profile in, by whichever route above.
 2. Press **New**, fill in the company and paste the job description.
 3. Work down the steps.
+
+If you open `index.html` by double-clicking it, browsers block storage on `file://` and nothing
+will persist, which is the one case where it really does ask every time. The page detects that
+and tells you to use `run.sh` instead.
 
 ## Files
 
