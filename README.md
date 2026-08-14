@@ -1,102 +1,66 @@
 # Interview Prep
 
-Paste a job description, get a researched company dossier and interview answers written in your own voice.
+An application workbench. Track every role you are going after, and move each one from
+research through to a mock interview, with output tailored to that company and to your own
+background.
 
 **Live: https://daynalee.github.io/interview-prep/**
 
-Single static HTML file. No build step, no backend, no dependencies, **and no API key
-required**.
+Two static files, no build step, no backend, no dependencies, no API key.
 
-## Three modes
+## The seven steps
 
-- **Interview prep.** Dossier, fit map, answers, follow-up drilling, six researched questions
-  to ask them, weakest-answer critique.
-- **Application materials.** Cover letter, a short-answer bank at two lengths for application
-  forms, resume vocabulary alignment against the posting, referral and recruiter notes, and an
-  honest read on whether the application is worth the time.
-- **Should I even apply.** Scores the role against your stated criteria and returns Apply,
-  Apply if you can get a referral, or Skip. Designed to tell you no.
+Each one copies a prompt. Paste it into Claude, then bring the result back into the page so
+later steps reuse it.
 
-## Length limits
+1. **Research the company.** Web search. Every claim tagged `[VERIFIED]` with a source URL,
+   `[INFERRED]` with the reasoning, or `[UNKNOWN]`. Gaps are never filled with something
+   plausible.
+2. **Should I apply.** Scores the role against your stated criteria and returns Apply, Apply
+   if you can get a referral, or Skip. Built to say no.
+3. **Application answers.** Answers their exact questions, each with its own length limit, or
+   writes full materials (cover letter, short answer bank, resume alignment, outreach) if you
+   have not added questions.
+4. **Predict my questions.** Ranked into near certain, likely from the posting, likely from the
+   company, the ones you should fear, and curveballs, with an order to prepare in.
+5. **Draft prep answers.** Answers with a one-line spine to rebuild each in the room,
+   follow-up drilling for the probes that come next, and six researched questions to ask them.
+6. **Practice out loud.** Claude interviews you one question at a time, probes your answers,
+   pushes back, then critiques.
+7. **Debrief afterwards.** Turns your notes into concrete edits for your profile, so the next
+   application starts from a better version of you.
 
-Set a limit and a unit (characters or words) and every answer is written to fit it, with the
-count stated in brackets so you can see it. A per-question limit written into the questions box
-overrides the global one. The setting persists between visits.
+## Why it is built this way
 
-Because a model's self-reported count can be off by a little, there is a **Length check** box
-at the bottom of the page: paste an answer, get the real count from your own browser, and see
-whether it fits. That is the count that decides whether their form accepts it.
+**Research once per company.** The dossier is stored on the application and reused by every
+later step, rather than re-researched each time.
 
-## Their questions beat guessed ones
+**Two passes, never blended.** Research produces cited facts; a separate pass writes from your
+profile and may only use `[VERIFIED]` facts. Doing both at once is what makes answers generic.
 
-There is an optional box for the questions they actually asked: application form fields,
-anything sent in advance. Paste them and the tool answers exactly those, in order, obeying
-any word or character limit they state and reporting the count so you can paste without
-editing. Leave it empty and it picks the usual questions for the round instead.
+**The page never calls a model.** It cannot scrape, because browsers block cross-origin
+requests and job boards block bots anyway. So it captures structure, stores what Claude returns,
+and builds the right prompt. Everything intelligent happens in Claude, on the plan you already
+have.
 
-## Two ways to run it
+**Per-question length limits with a real counter.** Paste an answer back into a question and
+your browser counts it. That is the count their form applies, and it is more reliable than a
+model's self-reported count.
 
-**Build my prompt (default, free).** The page assembles your profile, the job description,
-and the full research and voice instructions into one prompt, and copies it to your
-clipboard. Paste that into Claude Code or claude.ai and send it. Claude does the research
-and writes the answers on the Claude plan you already have. No key, no billing, nothing to
-set up.
-
-**Run it here (optional, paid).** If you save an Anthropic API key, the page can call the
-API directly from your browser and stream both passes inline. An Anthropic API key is a
-separate prepaid product from a Claude subscription, so most people should ignore this.
-
-There is no third option: a static page with no backend cannot call a paid model without
-somebody's key, and a shared key on a public page would let anyone spend it.
-
-## How it works
-
-Two passes that never blend, because doing both at once is what makes interview answers sound generic.
-
-1. **Research.** Runs live web search and produces a dossier where every claim is tagged `[VERIFIED]` with a source URL, `[INFERRED]` with the reasoning, or `[UNKNOWN]`. Gaps are never filled with something plausible: an invented founder name repeated in an interview room is the worst thing a tool like this can do.
-2. **Voice.** A separate pass drafts answers from your own profile and reaches into the dossier only for specifics. Only `[VERIFIED]` facts are allowed into an answer.
-
-The test for every answer: swap in a different company name. If it still works, it is not finished.
-
-LinkedIn blocks automated access, so the tool does not pretend to browse it. It searches what is publicly indexed, then hands you a short list of specific people to open yourself with what to look for on each.
-
-## Your data
-
-Your API key and your profile are stored in **your browser's localStorage only**. Neither is in this repository, and neither is sent anywhere except directly from your browser to the Anthropic API. Anyone else who opens the site gets an empty tool.
-
-The key never touches a server of mine because there isn't one. Use **Clear saved data** on a shared machine.
+**Your data stays yours.** Profile and applications live in this browser's localStorage only.
+Nothing personal is in this repository. Anyone else who opens the site gets an empty tool. Use
+**Back up** to export a JSON file, and **Restore** to move it to another device.
 
 ## Setup
 
-1. Paste your background under **My profile**, or press **Load from file** and pick
-   `PROFILE-PASTE.md`. It saves itself as you type, so there is no button to remember and
-   nothing is lost on refresh. A badge in the top bar shows it is loaded. This is a one-time
-   step per browser.
-2. Paste a job description, set the round, optionally paste their questions, press
-   **Build my prompt**.
-3. Paste the result into Claude and send it.
+1. Press **My profile** and either paste your background or press **Load from file**. It saves
+   itself as you type. One time per browser.
+2. Press **New**, fill in the company and paste the job description.
+3. Work down the steps.
 
-That is the whole setup. Nothing to install, nothing to pay for.
+## Files
 
-### Optional: running it in the page instead
-
-**An Anthropic API key is not the same thing as a Claude subscription.** Claude Code and
-claude.ai run on a Claude plan. The API is a separate product with its own prepaid billing.
-If you have never used console.anthropic.com, you do not have a key, and anything else you
-paste comes back as "API key is invalid".
-
-If you want inline streaming anyway: create a key at
-[console.anthropic.com](https://console.anthropic.com), buy credit under Billing, paste it
-under **Setup**, then press **Test key**. That makes the cheapest possible call and shows
-the API's own response, so a failure names the actual reason instead of a guess. A run costs
-a few cents.
-
-## Why the profile matters more than the research
-
-The research half is the easy half. What makes an answer yours is having real stories, exact numbers, and a sample of how you actually talk. A thin profile produces polished, accurate, forgettable answers. Paste more than feels necessary, including the unpolished writing.
-
-## Notes
-
-- Model: `claude-opus-5`, with the server-side web search tool.
-- Streams both passes, and resumes across `pause_turn` so long research loops finish.
-- Falls back to in-memory storage when a browser blocks site storage, and says so.
+- `index.html` — markup and styles
+- `app.js` — state, prompt builders, rendering
+- `profile.local.txt` — gitignored. If present, the page auto-loads it, so running locally
+  needs no pasting. Never committed, never on the public site.
