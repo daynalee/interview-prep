@@ -99,6 +99,44 @@
     remember and nothing lost on refresh. Stored in this browser only, never in this site's source.
   </p>
   <div id="profWhy" class="note" style="margin:0 0 12px"></div>
+
+  <div id="unlockBox" class="panel hidden" style="margin:0 0 14px;background:var(--bg)">
+    <h2>Unlock your profile</h2>
+    <p class="hint" style="margin:0 0 10px">
+      An encrypted profile is stored with this site. Enter your passphrase to decrypt it in this
+      browser. You do this once per device, then it is saved locally and loads on its own.
+    </p>
+    <input id="unlockPass" type="password" placeholder="Passphrase" autocomplete="current-password">
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button id="unlockBtn" class="primary">Unlock</button>
+      <span id="unlockStat" class="hint" style="margin:0"></span>
+    </div>
+  </div>
+
+  <details id="encTool" style="margin:0 0 14px">
+    <summary>Encrypt this profile for the hosted site</summary>
+    <div class="note" style="margin-top:10px">
+      <p class="hint" style="margin:0 0 10px">
+        Encrypts the profile above and downloads <code>profile.enc.json</code>. Commit that file
+        to the repo and the hosted site will ask for this passphrase instead of a file. The
+        passphrase never leaves this browser and is not recoverable, so store it in your password
+        manager before you close this.
+      </p>
+      <div class="note warn" style="margin:0 0 12px">
+        <strong>The passphrase is the only protection.</strong> Anyone can download the encrypted
+        file, so it can be attacked offline with no rate limit. Use a long unique passphrase from
+        your password manager. Do not reuse one.
+      </div>
+      <label for="encPass1">Passphrase</label>
+      <input id="encPass1" type="password" autocomplete="new-password" placeholder="At least 16 characters">
+      <label for="encPass2">Confirm</label>
+      <input id="encPass2" type="password" autocomplete="new-password">
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button id="encBtn">Encrypt and download</button>
+        <span id="encStat" class="hint" style="margin:0"></span>
+      </div>
+    </div>
+  </details>
   <textarea id="prof" rows="12" placeholder="Paste your profile, or press Load from file."></textarea>
   <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <button id="pickProf" class="primary">Load from file</button>
@@ -788,6 +826,86 @@ $("importFile").onchange = async e => {
   e.target.value = "";
 };
 
+
+/* ---------- crypto: PBKDF2-SHA256 to AES-GCM-256, all in this browser ---------- */
+const ITER = 600000;              // OWASP guidance for PBKDF2-SHA256
+const TE = new TextEncoder(), TD = new TextDecoder();
+
+function toB64(buf){
+  const b = new Uint8Array(buf);
+  let s = "";
+  const CH = 0x8000;              // chunked, a 60KB spread blows the argument limit
+  for (let i = 0; i < b.length; i += CH) s += String.fromCharCode.apply(null, b.subarray(i, i + CH));
+  return btoa(s);
+}
+const fromB64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+
+async function deriveKey(pass, salt, iterations){
+  const base = await crypto.subtle.importKey("raw", TE.encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2", salt, iterations, hash:"SHA-256"},
+    base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
+}
+
+async function encryptText(text, pass){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(pass, salt, ITER);
+  const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, TE.encode(text));
+  return {v:1, kdf:"PBKDF2-SHA256", iterations:ITER, salt:toB64(salt), iv:toB64(iv), ct:toB64(ct)};
+}
+
+async function decryptBlob(blob, pass){
+  const key = await deriveKey(pass, fromB64(blob.salt), blob.iterations || ITER);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:fromB64(blob.iv)}, key, fromB64(blob.ct));
+  return TD.decode(pt);
+}
+
+const cryptoReady = () => !!(window.crypto && crypto.subtle && window.isSecureContext);
+
+/* ---------- encrypt tool ---------- */
+$("encBtn").onclick = async () => {
+  const t = $("prof").value.trim();
+  const p1 = $("encPass1").value, p2 = $("encPass2").value;
+  const stat = m => { $("encStat").textContent = m; };
+  if (!cryptoReady()){ stat("Encryption needs a secure context. Use run.sh or the https site, not a local file."); return; }
+  if (!t){ stat("Load your profile above first."); return; }
+  if (p1.length < 16){ stat("Use at least 16 characters. This is the only thing protecting the file."); return; }
+  if (p1 !== p2){ stat("The two passphrases do not match."); return; }
+  stat("Encrypting...");
+  try {
+    const blob = await encryptText(t, p1);
+    const json = JSON.stringify(blob, null, 2);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([json], {type:"application/json"}));
+    a.download = "profile.enc.json";
+    a.click();
+    $("encPass1").value = ""; $("encPass2").value = "";
+    stat(`Downloaded profile.enc.json, ${json.length.toLocaleString()} bytes. Move it into ~/interview-web and commit it. Save the passphrase now.`);
+  } catch (e){ stat("Encryption failed: " + e.message); }
+};
+
+/* ---------- unlock ---------- */
+let pendingBlob = null;
+async function doUnlock(){
+  const pass = $("unlockPass").value;
+  if (!pass){ $("unlockStat").textContent = "Enter your passphrase."; return; }
+  $("unlockStat").textContent = "Decrypting...";
+  $("unlockBtn").disabled = true;
+  try {
+    const text = await decryptBlob(pendingBlob, pass);
+    S.profile = text; $("prof").value = text; save(); renderBadges();
+    $("unlockPass").value = "";
+    $("unlockBox").classList.add("hidden");
+    $("profStat").textContent = "Decrypted and saved in this browser.";
+    why("Unlocked and saved. This device will not ask again.");
+  } catch {
+    $("unlockStat").textContent = "That passphrase did not work. Nothing was changed, try again.";
+  } finally { $("unlockBtn").disabled = false; }
+}
+$("unlockBtn").onclick = doUnlock;
+$("unlockPass").addEventListener("keydown", e => { if (e.key === "Enter") doUnlock(); });
+
 /* ---------- local profile auto-load, and an honest explanation either way ----------
    profile.local.txt is gitignored. It exists when you run this from your own machine and
    never exists on the public site, which is deliberate: the repo is public, so anything
@@ -828,13 +946,34 @@ function why(html, warn){
     }
   } catch {}
 
+  // Encrypted profile committed to the repo. Ciphertext only, unlocked in this browser.
+  try {
+    const r = await fetch("profile.enc.json", {cache:"no-store"});
+    if (r.ok){
+      const blob = await r.json();
+      if (blob && blob.ct && blob.salt && blob.iv){
+        if (!cryptoReady()){
+          why(`An encrypted profile is stored here but this page is not in a secure context, so
+               it cannot be decrypted. Use the https site or <code>run.sh</code>.`, true);
+          return;
+        }
+        pendingBlob = blob;
+        $("unlockBox").classList.remove("hidden");
+        togglePanel("profilePanel", true);
+        why(`Your profile is stored here encrypted. Enter your passphrase once on this device to
+             unlock it. The repository holds ciphertext only, never readable text.`);
+        $("unlockPass").focus();
+        return;
+      }
+    }
+  } catch {}
+
   why(hosted
     ? `<strong>One time on this device.</strong> Your profile is not in this site's code, and
-       will not be: the repository is public, so committing it would publish your salary
-       context, internal figures, and personal history to anyone who looks. Press
-       <strong>Load from file</strong> once and pick <code>PROFILE-PASTE.md</code>. It saves
-       itself in this browser and loads automatically every time after that. For zero setup on
-       your Mac, run <code>~/interview-web/run.sh</code> instead.`
+       will not be in readable form: the repository is public. Press <strong>Load from file</strong>
+       once and pick <code>PROFILE-PASTE.md</code>. It saves itself and loads automatically after
+       that. For zero setup on your Mac, run <code>~/interview-web/run.sh</code>. To skip the file
+       pick on every device, load your profile here once and use the encrypt tool below.`
     : `No profile saved yet, and no <code>profile.local.txt</code> found next to this page.
        Press <strong>Load from file</strong>, or run <code>~/interview-web/run.sh</code>.`);
 })();

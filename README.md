@@ -62,13 +62,20 @@ Nothing personal is in this repository. Anyone else who opens the site gets an e
 That regenerates your profile from `~/interview-agent/me/`, starts a local server, and opens the
 page with everything preloaded.
 
-**On the hosted site, one time per device:** press **My profile**, then **Load from file**, and
-pick `PROFILE-PASTE.md`. It saves itself and loads automatically on every visit after that. The
-page tells you which situation you are in and why.
+**On the hosted site, unlock with a passphrase.** The repo can hold `profile.enc.json`, your
+profile encrypted with AES-GCM-256 under a key derived by PBKDF2-SHA256 at 600,000 iterations.
+The page fetches it, you enter your passphrase once per device, it decrypts in your browser and
+saves locally. Every visit after that loads on its own.
 
-Your profile is deliberately not in this repository. The repo is public, so committing it would
-publish your comp context, internal figures, and personal history to anyone who looks. One file
-pick per device is the price of that not happening.
+To create it: load your profile in the page, open **Encrypt this profile for the hosted site**,
+choose a passphrase, and commit the downloaded `profile.enc.json`.
+
+**Your passphrase is the only protection.** Anyone can download the encrypted file, so it can be
+attacked offline with no rate limiting. Use a long unique passphrase from a password manager, and
+store it there before you close the tab. It is not recoverable.
+
+Readable profile text is never committed. `profile.local.txt` is gitignored and
+`PROFILE-PASTE.md` lives in the private repo.
 
 1. Get your profile in, by whichever route above.
 2. Press **New**, fill in the company and paste the job description.
