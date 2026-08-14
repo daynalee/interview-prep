@@ -168,19 +168,21 @@
     Pasting the full text works better than a link. Many job boards block automated
     fetching, so a bare URL may come back thin.
   </p>
+  <label for="qs">Their questions, if you have them (optional)</label>
+  <textarea id="qs" rows="5" placeholder="Paste the application form questions or anything they sent in advance, one per line. Include any word or character limits they state."></textarea>
+  <p class="hint">Leave this empty and it picks the usual questions for the round instead.</p>
+
   <label for="who">Interviewer names, if you have them (optional)</label>
   <input id="who" type="text" placeholder="Comma separated" spellcheck="false">
 
   <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button id="build" class="primary">Build my prompt</button>
-    <button id="go" class="ghost">Run it here instead</button>
+    <button id="go" class="ghost hidden">Run it here instead</button>
     <button id="stop" class="ghost hidden">Stop</button>
     <span id="status" class="status"></span>
   </div>
   <p class="hint">
-    <strong>Build my prompt</strong> needs no API key and costs nothing. It assembles
-    everything into one prompt you paste into Claude, which then does the research and
-    writes the answers on your existing Claude plan.
+    Copies one prompt to your clipboard. Paste it into Claude and send it.
     <span id="liveHint"></span>
   </p>
   <div id="err" class="err"></div>
@@ -254,10 +256,11 @@ refreshProfStat();
 function refreshLiveHint(){
   const has = !!store.get(K_KEY);
   $("keyStat").textContent = has ? `Saved, ${store.get(K_KEY).length} characters.` : "";
+  // Only surface the paid path when a key actually exists, so the default is one button.
+  $("go").classList.toggle("hidden", !has);
   $("liveHint").textContent = has
-    ? "Run it here instead streams the output on this page using your saved API key, billed per run."
-    : "Run it here instead is optional and needs a paid Anthropic API key. Most people should ignore it.";
-  $("go").title = has ? "" : "Needs an Anthropic API key";
+    ? "Or run it here to stream the output inline, billed to your saved API key."
+    : "";
 }
 refreshLiveHint();
 
@@ -517,7 +520,7 @@ OUTPUT, in markdown:
 Every meaningful line of the job description mapped to the specific thing in the profile that answers it, marked strong, partial, or gap. Then: the three things they are actually hiring for underneath the padded posting. Then honest gaps with the bridge for each. Then angles only this candidate has.
 
 ## Answers
-The questions that matter for this round. For each: the answer, then a one-line SPINE giving the three beats to remember so they can rebuild it in the room instead of reciting it, then SOURCES naming the dossier facts used.
+If the request above supplied their exact questions, answer those and only those, in the order given, obeying any stated limits. Otherwise use the questions that matter for this round. For each: the answer, then a one-line SPINE giving the three beats to remember so they can rebuild it in the room instead of reciting it, then SOURCES naming the dossier facts used.
 
 ## Follow-up drilling
 Interviews are lost in the follow-ups, not the openers. For each answer above, give the two or three probes a sharp interviewer would actually ask next, and a one or two sentence response to each. Prioritize:
@@ -566,7 +569,9 @@ Under 300 words, four paragraphs.
 Never restate the job description. Never explain that she is qualified; show it and stop.
 
 ## Short answer bank
-Application forms ask the same handful of questions in a box with a character limit. Draft each at two lengths, roughly 60 words and roughly 150, so she can paste whichever fits:
+If the request above supplied their exact application questions, answer those and only those, in order. Obey any stated word or character limit exactly and report the count you landed on, so she can paste without editing. If no limit is given, draft at roughly 60 words and roughly 150 so she can pick.
+
+If no questions were supplied, cover the usual set. Draft each at both lengths:
 - Why do you want to work here
 - Why are you a good fit for this role
 - What interests you about this team or product
@@ -712,6 +717,7 @@ function gather(){
     co: $("co").value.trim(),
     round: $("round").selectedOptions[0].textContent,
     who: $("who").value.trim(),
+    qs: $("qs").value.trim(),
     mode: $("mode").value
   };
 }
@@ -737,6 +743,11 @@ function buildPrompt(g){
 Company: ${g.co || "(identify it from the posting below)"}
 ${g.mode === "interview" ? `Round: ${g.round}` : ""}
 ${g.who ? `Interviewers: ${g.who}` : ""}
+${g.qs ? `
+THEY ASKED THESE EXACT QUESTIONS. Answer every one of them, in this order, and do not substitute your own list. Where a question states a word or character limit, obey it exactly and say the count you landed on. Where it does not, use the length guidance for the round.
+
+${g.qs}
+` : ""}
 
 ===== PASS 1: RESEARCH =====
 
@@ -850,6 +861,11 @@ ${jd}`}],
       output_config: {effort:"high"}
     }, [{role:"user", content:
 `${$("mode").value === "interview" ? `Interview round: ${roundName}. Calibrate answer length and depth to it.` : ""}
+${$("qs").value.trim() ? `
+THEY ASKED THESE EXACT QUESTIONS. Answer every one, in this order, and do not substitute your own list. Obey any stated word or character limit exactly.
+
+${$("qs").value.trim()}
+` : ""}
 
 === THE CANDIDATE'S PROFILE (source of truth for everything about them) ===
 ${prof}

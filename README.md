@@ -17,6 +17,13 @@ required**.
 - **Should I even apply.** Scores the role against your stated criteria and returns Apply,
   Apply if you can get a referral, or Skip. Designed to tell you no.
 
+## Their questions beat guessed ones
+
+There is an optional box for the questions they actually asked: application form fields,
+anything sent in advance. Paste them and the tool answers exactly those, in order, obeying
+any word or character limit they state and reporting the count so you can paste without
+editing. Leave it empty and it picks the usual questions for the round instead.
+
 ## Two ways to run it
 
 **Build my prompt (default, free).** The page assembles your profile, the job description,
@@ -55,7 +62,8 @@ The key never touches a server of mine because there isn't one. Use **Clear save
    `PROFILE-PASTE.md`. It saves itself as you type, so there is no button to remember and
    nothing is lost on refresh. A badge in the top bar shows it is loaded. This is a one-time
    step per browser.
-2. Paste a job description, set the round, press **Build my prompt**.
+2. Paste a job description, set the round, optionally paste their questions, press
+   **Build my prompt**.
 3. Paste the result into Claude and send it.
 
 That is the whole setup. Nothing to install, nothing to pay for.
