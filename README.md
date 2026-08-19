@@ -18,11 +18,24 @@ and demographic fields are filtered out; salary expectations are deliberately le
 Ashby and Lever do not expose application questions, so add those by hand. Any other board:
 paste the description yourself.
 
-## Just do it, or step by step
+## One link in, four things out
 
-**Copy the one prompt I need** produces a single prompt covering research and answers in one
-paste. That is the normal path. The seven steps below are there when you want to control each
-stage, reuse a dossier across rounds, or run a mock interview.
+Paste the posting URL, press **Fetch**, press **Do everything for this role**. One prompt, one
+paste into Claude, and you get:
+
+1. **Company research**, every claim tagged `[VERIFIED]` with a source, `[INFERRED]`, or `[UNKNOWN]`.
+2. **A tailored resume**, rewritten against the posting from `me/06-resume.md`, plus what changed
+   and why, plus what the posting asks for that your background does not evidence.
+3. **Answers to their actual application questions**, with per-question limits obeyed.
+4. **The interview questions to expect**, ranked into near certain, from the posting, from the
+   company, the ones you should fear, and curveballs, **with drafted answers**, a spine for each,
+   and the follow-up probes that come next.
+
+The resume tailoring is allowed to reorder, reweight and re-word. It is not allowed to invent a
+bullet, inflate a number, or move a date.
+
+The seven steps below are still there for when you want to control a stage, reuse a dossier across
+rounds, or run a mock interview.
 
 ## The seven steps
 

@@ -208,13 +208,15 @@
   </section>
 
   <section class="panel">
-    <h2>Just do it</h2>
+    <h2>Everything at once</h2>
     <p class="hint" style="margin:0 0 12px">
-      One prompt, one paste, everything at once: research, then answers to your questions. Use this
-      unless you want to control the steps.
+      Paste the posting link above, press Fetch, then this. One prompt, one paste, and you get
+      the company research, a tailored resume, answers to their application questions, the
+      interview questions to expect, and drafted answers to those. Use this unless you want to
+      control each stage.
     </p>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <button id="oneShot" class="primary" style="font-size:15px;padding:11px 20px">Copy the one prompt I need</button>
+      <button id="oneShot" class="primary" style="font-size:15px;padding:11px 20px">Do everything for this role</button>
       <span id="oneStat" class="hint" style="margin:0"></span>
     </div>
     <div class="err" id="err"></div>
@@ -425,42 +427,114 @@ function qList(a){
 
 function oneShotPrompt(a){
   const qs = qList(a);
-  return `${header(a, "Do this in two passes and do not blend them. Research the company first, then use what you found to write my answers. Doing both at once is what makes output generic.")}
+  const known = a.dossier.trim();
+  return `${header(a, "I am going after this role. Give me everything I need for it, in the order below. Do the research first and let it inform everything after, because research and writing done at once produces generic output.")}
 
-${a.dossier.trim() ? "I already have research on this company, below. Skip pass 1 and go straight to pass 2." : ""}
+${known ? "I already have research on this company, at the bottom. Skip part 1." : ""}
 
-===== PASS 1: RESEARCH =====
+===== PART 1: RESEARCH THE COMPANY =====
 
-${a.dossier.trim() ? "(already done, see the dossier below)" : RESEARCH}
-
-===== PASS 2: ${qs ? "ANSWER MY APPLICATION QUESTIONS" : "WRITE MY APPLICATION MATERIALS"} =====
+${known ? "(already done, see MY EXISTING RESEARCH below)" : RESEARCH}
 
 ${VOICE}
 
-${qs ? `Answer every question below, in order, and do not substitute your own list. Where a hard limit is given, obey it exactly and state the count in brackets after the answer, like [487 characters]. If a draft runs over, cut it and recount. Anchor each answer to a [VERIFIED] fact from pass 1 where it helps.
+===== PART 2: A TAILORED RESUME =====
+
+My canonical resume is in my profile under FILE: 06-resume.md. Work from exactly that.
+
+Rules, in order of importance:
+1. **Invent nothing.** Do not add a bullet describing work I did not do, do not inflate a number,
+   do not move a date. Every line must be traceable to my profile.
+2. Reorder and reweight. Lead each role with the bullet closest to this posting. Cut what does not
+   serve this application.
+3. Rewrite bullets to use their vocabulary where it is honest. If they say 7 day cohort ROAS and I
+   say D7, use theirs. If they name a platform I have not used, do not imply I have.
+4. Pull sharper detail from my story bank where the CV is vague. The CV says "campaign and supply
+   optimizations"; the story bank has the actual levers. Use the specifics.
+5. One page. If it runs long, cut Pacific Pain Specialists to one line first, then trim Uber Eats.
+
+Output:
+
+## Tailored resume
+The complete resume, ready to paste, in plain markdown. Same sections as my canonical version.
+
+## What I changed and why
+A short list. Each entry: what you changed, and which line of the posting drove it.
+
+## What I could not evidence
+Requirements in this posting that nothing in my profile supports. Say so plainly rather than
+papering over them. For each, note whether it is a hard filter or a soft preference.
+
+===== PART 3: ${qs ? "ANSWERS TO THEIR APPLICATION QUESTIONS" : "APPLICATION MATERIALS"} =====
+
+${qs ? `Answer every question below, in order, and do not substitute your own list. Where a hard limit
+is given, obey it exactly and state the count in brackets after the answer, like [487 characters].
+If a draft runs over, cut it and recount. Anchor answers to a [VERIFIED] fact from part 1 where it
+helps. Never use a fact tagged [INFERRED] or [UNKNOWN].
 
 ${qs}
 
 Then:
 
 ## Weakest answer
-Which of these would a reviewer find least convincing, and why.
-
-## Where my profile is thin
-Anything marked [NEEDS DETAIL] or [DAYNA] in my profile that would have improved these answers.`
+Which of these would a reviewer find least convincing, and why.`
 : `## Cover letter
-Under 300 words, four paragraphs. Open with the strongest specific claim about what I have done, with the number, not "I am writing to apply". Then the verified company fact that makes me want this and why my experience connects. Then one story in three sentences, with the mechanism and the result. Then a one line close.
+Under 300 words, four paragraphs. Open with the strongest specific claim about what I have done,
+with the number, not "I am writing to apply". Then the verified company fact that makes me want
+this and why my experience connects. Then one story in three sentences, with the mechanism and the
+result. Then a one line close.
 
 ## Short answer bank
-The questions application forms usually ask, each at roughly 60 and roughly 150 words: why this company, why a good fit for this role, what interests me about the team or product, anything else we should know.
+The questions application forms usually ask, each at roughly 60 and roughly 150 words: why this
+company, why a good fit for this role, what interests me about the team or product, anything else
+we should know.`}
 
-## Resume alignment
-Their vocabulary versus mine, honest swaps only. Bullets to lead with. Requirements my CV does not evidence.
+===== PART 4: INTERVIEW QUESTIONS I SHOULD EXPECT =====
 
-## The honest read
-Is this worth applying to. Where I am strong, where I am a stretch, what would make a reviewer pass.`}
+Predict what they will actually ask, from this specific posting, this company, and my background.
+Group them:
 
-${a.dossier.trim() ? `\n===== MY EXISTING RESEARCH =====\n\n${a.dossier.trim()}\n` : ""}
+## Near certain
+The ones any interviewer for this role asks. Include the gap question about May 2024 to August 2025.
+
+## From this posting
+Questions the responsibilities and requirements make likely. Tie each to the line that prompts it.
+
+## From this company
+Questions their situation, product or the tension you found in part 1 make likely.
+
+## The ones I should fear
+Where my background is weakest against this posting. Be blunt. These get prepared first.
+
+## Curveballs
+Two or three they might reasonably ask that I would not see coming.
+
+===== PART 5: MY ANSWERS TO THOSE QUESTIONS =====
+
+Draft answers to the near certain ones, the top three from the posting, and every one under
+"the ones I should fear". For each:
+
+- The answer, written to be spoken out loud, in my voice, at the length appropriate to the round.
+- **Spine:** one line with the three beats so I can rebuild it in the room instead of reciting it.
+- **Follow-ups:** the two probes an interviewer would ask next, each with a one or two sentence
+  response. Interviews are lost in the probes, not the openers. Target the number that invites
+  "over what period", the claim that invites "what if that had not worked", and the place where my
+  own role is least specified. Mark any probe my profile cannot answer as UNPREPARED.
+
+Then:
+
+## Six questions for me to ask them
+Built from part 1, never from a generic list. Two on the hard problem in their business, one on
+what success looks like at 6 and 12 months, one that tests your read of how the team operates, one
+for the specific interviewer or their function, and one I genuinely need answered to decide whether
+to take the job. For each: the question, one line on why it lands, and one line on what a bad
+answer from them would tell me.
+
+## Where my profile is thin
+Anything marked [NEEDS DETAIL] or [DAYNA] that would have improved this specific output, and what
+to go find out. Short and concrete.
+
+${known ? `\n===== MY EXISTING RESEARCH =====\n\n${known}\n` : ""}
 ${jdBlock(a)}
 
 ===== MY PROFILE =====
@@ -1132,23 +1206,34 @@ function why(html, warn){
     return;
   }
 
-  if (S.profile.trim()){
-    why(`Profile is saved in this browser and loads automatically. Nothing to do.`);
-    return;
-  }
-
+  // A local profile.local.txt is regenerated from the me/ files, so it is the source of
+  // truth on this machine and wins over whatever is already in localStorage.
   try {
     const r = await fetch("profile.local.txt", {cache:"no-store"});
     if (r.ok){
       const t = (await r.text()).trim();
       if (t && !t.startsWith("<")){
+        const changed = t !== S.profile.trim();
+        const had = S.profile.trim().length;
         S.profile = t; $("prof").value = t; save(); renderBadges();
-        $("profStat").textContent = "Auto-loaded from profile.local.txt.";
-        why(`Loaded automatically from <code>profile.local.txt</code> on this machine.`);
+        if (changed && had){
+          $("profStat").textContent = "Refreshed from profile.local.txt.";
+          why(`Refreshed from <code>profile.local.txt</code>, which grew from
+               ${had.toLocaleString()} to ${t.length.toLocaleString()} characters. The file on this
+               machine is the source of truth, so regenerating it updates the page.`);
+        } else {
+          $("profStat").textContent = "Auto-loaded from profile.local.txt.";
+          why(`Loaded automatically from <code>profile.local.txt</code> on this machine.`);
+        }
         return;
       }
     }
   } catch {}
+
+  if (S.profile.trim()){
+    why(`Profile is saved in this browser and loads automatically. Nothing to do.`);
+    return;
+  }
 
   // Encrypted profile committed to the repo. Ciphertext only, unlocked in this browser.
   try {
