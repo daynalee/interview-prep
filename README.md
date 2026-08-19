@@ -8,6 +8,22 @@ background.
 
 One static HTML file. No build step, no backend, no dependencies, no API key.
 
+## Paste the link, not the posting
+
+Greenhouse, Ashby and Lever all serve their job data with `access-control-allow-origin: *`, so
+the page reads them directly. Paste the posting URL, press **Fetch**, and it fills the role, the
+full description, and on Greenhouse **their actual application questions**. Identity, compliance
+and demographic fields are filtered out; salary expectations are deliberately left for you.
+
+Ashby and Lever do not expose application questions, so add those by hand. Any other board:
+paste the description yourself.
+
+## Just do it, or step by step
+
+**Copy the one prompt I need** produces a single prompt covering research and answers in one
+paste. That is the normal path. The seven steps below are there when you want to control each
+stage, reuse a dossier across rounds, or run a mock interview.
+
 ## The seven steps
 
 Each one copies a prompt. Paste it into Claude, then bring the result back into the page so

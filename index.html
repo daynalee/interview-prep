@@ -183,8 +183,15 @@
       </div>
       <div><label for="f_who">Interviewer names (optional)</label><input id="f_who" placeholder="Comma separated"></div>
     </div>
-    <label for="f_url">Posting URL (optional)</label>
-    <input id="f_url" placeholder="https://">
+    <label for="f_url">Posting URL</label>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="f_url" placeholder="https://job-boards.greenhouse.io/... , jobs.ashbyhq.com/... , jobs.lever.co/..." style="flex:1;min-width:240px">
+      <button id="fetchBtn" class="primary">Fetch</button>
+    </div>
+    <p class="hint" id="fetchStat" style="margin-top:7px">
+      Pulls the job description automatically. On Greenhouse it also pulls their real application
+      questions, so you do not have to retype them.
+    </p>
     <label for="f_jd">Job description</label>
     <textarea id="f_jd" rows="8" placeholder="Paste the full posting text. This works much better than a link, since most job boards block automated fetching."></textarea>
   </section>
@@ -201,14 +208,28 @@
   </section>
 
   <section class="panel">
-    <h2>Steps</h2>
-    <p class="hint" style="margin:0 0 4px">
-      Each button copies a prompt. Paste it into Claude, then bring the result back into the two
-      boxes below so later steps reuse it instead of researching from scratch.
+    <h2>Just do it</h2>
+    <p class="hint" style="margin:0 0 12px">
+      One prompt, one paste, everything at once: research, then answers to your questions. Use this
+      unless you want to control the steps.
     </p>
-    <div id="steps"></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button id="oneShot" class="primary" style="font-size:15px;padding:11px 20px">Copy the one prompt I need</button>
+      <span id="oneStat" class="hint" style="margin:0"></span>
+    </div>
     <div class="err" id="err"></div>
   </section>
+
+  <details class="panel" id="stepsPanel">
+    <summary style="cursor:pointer;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)">
+      Step by step, if you want more control
+    </summary>
+    <p class="hint" style="margin:10px 0 4px">
+      Each button copies one prompt. Paste the result back into the boxes below so later steps
+      reuse it instead of researching from scratch.
+    </p>
+    <div id="steps"></div>
+  </details>
 
   <section class="panel">
     <h2>What Claude gave back</h2>
@@ -400,6 +421,51 @@ function qList(a){
     const lim = q.limit ? `  [HARD LIMIT: ${q.limit} ${q.unit || "characters"} or fewer]` : "";
     return `Q${i + 1}. ${q.q.trim()}${lim}`;
   }).join("\n\n");
+}
+
+function oneShotPrompt(a){
+  const qs = qList(a);
+  return `${header(a, "Do this in two passes and do not blend them. Research the company first, then use what you found to write my answers. Doing both at once is what makes output generic.")}
+
+${a.dossier.trim() ? "I already have research on this company, below. Skip pass 1 and go straight to pass 2." : ""}
+
+===== PASS 1: RESEARCH =====
+
+${a.dossier.trim() ? "(already done, see the dossier below)" : RESEARCH}
+
+===== PASS 2: ${qs ? "ANSWER MY APPLICATION QUESTIONS" : "WRITE MY APPLICATION MATERIALS"} =====
+
+${VOICE}
+
+${qs ? `Answer every question below, in order, and do not substitute your own list. Where a hard limit is given, obey it exactly and state the count in brackets after the answer, like [487 characters]. If a draft runs over, cut it and recount. Anchor each answer to a [VERIFIED] fact from pass 1 where it helps.
+
+${qs}
+
+Then:
+
+## Weakest answer
+Which of these would a reviewer find least convincing, and why.
+
+## Where my profile is thin
+Anything marked [NEEDS DETAIL] or [DAYNA] in my profile that would have improved these answers.`
+: `## Cover letter
+Under 300 words, four paragraphs. Open with the strongest specific claim about what I have done, with the number, not "I am writing to apply". Then the verified company fact that makes me want this and why my experience connects. Then one story in three sentences, with the mechanism and the result. Then a one line close.
+
+## Short answer bank
+The questions application forms usually ask, each at roughly 60 and roughly 150 words: why this company, why a good fit for this role, what interests me about the team or product, anything else we should know.
+
+## Resume alignment
+Their vocabulary versus mine, honest swaps only. Bullets to lead with. Requirements my CV does not evidence.
+
+## The honest read
+Is this worth applying to. Where I am strong, where I am a stretch, what would make a reviewer pass.`}
+
+${a.dossier.trim() ? `\n===== MY EXISTING RESEARCH =====\n\n${a.dossier.trim()}\n` : ""}
+${jdBlock(a)}
+
+===== MY PROFILE =====
+
+${S.profile.trim()}`;
 }
 
 const PROMPTS = {
@@ -750,6 +816,144 @@ $("qWrap").addEventListener("click", e => {
   else return;
   save(); renderQuestions(a);
 });
+
+
+/* ---------- fetch a posting from the boards that allow it ----------
+   Greenhouse, Ashby and Lever all send access-control-allow-origin: *, so the browser can read
+   them directly. Greenhouse is the only one that exposes the application questions. */
+
+const htmlToText = h => {
+  const d = document.createElement("div");
+  d.innerHTML = h || "";
+  d.querySelectorAll("li").forEach(li => li.prepend(document.createTextNode("- ")));
+  d.querySelectorAll("p,div,li,h1,h2,h3,h4,br,tr").forEach(el => el.append(document.createTextNode("\n")));
+  return (d.textContent || "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+};
+
+// Identity, file upload and compliance fields never need a drafted answer.
+// Anchored: short identity and file fields, matched from the start of the label.
+const SKIP_START = /^(first name|last name|full name|preferred name|email|phone|resume|resume\/cv|cv|cover letter|linkedin|website|portfolio|github|twitter|city|state|country|location)\b/i;
+// Unanchored: compliance and demographic questions, which are often wrapped in a long sentence.
+const SKIP_ANY = /(pronoun|legally authorized|require sponsorship|need sponsorship|visa status|work authorization|gender identity|\brace\b|ethnicit|veteran status|disability status|hispanic or latino|self-identif)/i;
+const SKIP_Q = l => SKIP_START.test(l) || SKIP_ANY.test(l);
+const isSalaryQ = l => /salary|compensation expectation|expected pay|desired (salary|comp)/i.test(l);
+
+function detectBoard(url){
+  try {
+    const u = new URL(url.trim());
+    const h = u.hostname.replace(/^www\./, "");
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (/greenhouse\.io$/.test(h)){
+      const i = parts.indexOf("jobs");
+      if (i > 0) return {kind:"greenhouse", board:parts[i-1], id:parts[i+1]};
+      const t = u.searchParams.get("token"), f = u.searchParams.get("for");
+      if (t && f) return {kind:"greenhouse", board:f, id:t};
+    }
+    if (/ashbyhq\.com$/.test(h) && parts.length >= 2) return {kind:"ashby", board:parts[0], id:parts[1]};
+    if (/lever\.co$/.test(h) && parts.length >= 2) return {kind:"lever", board:parts[0], id:parts[1]};
+  } catch {}
+  return null;
+}
+
+async function fetchPosting(url){
+  const b = detectBoard(url);
+  if (!b) throw new Error("unsupported");
+
+  if (b.kind === "greenhouse"){
+    const r = await fetch(`https://boards-api.greenhouse.io/v1/boards/${b.board}/jobs/${b.id}?questions=true`);
+    if (!r.ok) throw new Error(`Greenhouse returned ${r.status}`);
+    const d = await r.json();
+    const qs = (d.questions || [])
+      .map(q => (q.label || "").replace(/\s*\*\s*$/, "").trim())
+      .filter(l => l && !SKIP_Q(l));
+    return {
+      title: d.title, location: (d.location || {}).name,
+      jd: htmlToText(d.content),
+      questions: qs.filter(l => !isSalaryQ(l)),
+      salaryAsked: qs.some(isSalaryQ),
+      source: "Greenhouse"
+    };
+  }
+
+  if (b.kind === "ashby"){
+    const r = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${b.board}`);
+    if (!r.ok) throw new Error(`Ashby returned ${r.status}`);
+    const d = await r.json();
+    const job = (d.jobs || []).find(j => j.id === b.id || (j.jobUrl || "").includes(b.id));
+    if (!job) throw new Error("that job is not on Ashby's public board any more");
+    return {
+      title: job.title, location: job.location,
+      jd: job.descriptionPlain || htmlToText(job.descriptionHtml),
+      questions: [], salaryAsked: false, source: "Ashby"
+    };
+  }
+
+  const r = await fetch(`https://api.lever.co/v0/postings/${b.board}/${b.id}`);
+  if (!r.ok) throw new Error(`Lever returned ${r.status}`);
+  const d = await r.json();
+  const lists = (d.lists || []).map(l => `${l.text}\n${htmlToText(l.content)}`).join("\n\n");
+  return {
+    title: d.text, location: ((d.categories || {}).location || ""),
+    jd: [htmlToText(d.description), lists, htmlToText(d.additional)].filter(Boolean).join("\n\n"),
+    questions: [], salaryAsked: false, source: "Lever"
+  };
+}
+
+$("fetchBtn").onclick = async () => {
+  const a = active();
+  if (!a){ flash("Press New to start an application."); return; }
+  const url = $("f_url").value.trim();
+  const stat = m => { $("fetchStat").textContent = m; };
+  if (!url){ stat("Paste the posting URL first."); return; }
+  if (!detectBoard(url)){
+    stat("That board is not readable from a browser. Greenhouse, Ashby and Lever work. For anything else, paste the description by hand.");
+    return;
+  }
+  $("fetchBtn").disabled = true; stat("Fetching...");
+  try {
+    const d = await fetchPosting(url);
+    a.url = url;
+    if (d.jd) a.jd = d.jd;
+    if (d.title && !a.role.trim()) a.role = d.title;
+    let added = 0;
+    if (d.questions.length){
+      const have = new Set((a.questions || []).map(q => (q.q || "").trim().toLowerCase()));
+      d.questions.forEach(q => {
+        if (have.has(q.toLowerCase())) return;
+        a.questions.push({q, limit:"", unit:"characters", answer:""});
+        added++;
+      });
+    }
+    save(); renderApp();
+    const bits = [`Pulled from ${d.source}.`];
+    if (d.jd) bits.push(`Description ${d.jd.length.toLocaleString()} characters.`);
+    bits.push(added ? `Added ${added} of their questions.` : (d.source === "Greenhouse" ? "No free text questions on this one." : `${d.source} does not expose application questions, so add those by hand.`));
+    if (d.salaryAsked) bits.push("They ask for salary expectations, which is yours to decide, so it was left out.");
+    stat(bits.join(" "));
+  } catch (e){
+    stat(e.message === "unsupported"
+      ? "Could not read that URL."
+      : `Could not fetch it: ${e.message}. Paste the description by hand.`);
+  } finally { $("fetchBtn").disabled = false; }
+};
+
+$("oneShot").onclick = async () => {
+  const a = active();
+  if (!a){ flash("Press New to start an application."); return; }
+  if (!S.profile.trim()){ togglePanel("profilePanel", true); flash("Add your profile first, or the output is generic."); return; }
+  if (!a.jd.trim()){ flash("Paste the job description first."); return; }
+  const text = oneShotPrompt(a);
+  $("outText").value = text;
+  $("outPane").classList.remove("hidden");
+  $("outTitle").textContent = "Everything in one prompt";
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch {}
+  $("oneStat").textContent = ok
+    ? `Copied ${text.length.toLocaleString()} characters. Paste it into Claude and send.`
+    : `Clipboard blocked. Select all in the box below and copy.`;
+  $("outStat").textContent = $("oneStat").textContent;
+  $("outPane").scrollIntoView({behavior:"smooth", block:"start"});
+};
 
 $("steps").addEventListener("click", async e => {
   const k = e.target.getAttribute("data-step");
