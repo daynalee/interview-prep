@@ -192,6 +192,37 @@
       Pulls the job description automatically. On Greenhouse it also pulls their real application
       questions, so you do not have to retype them.
     </p>
+    <div class="row3">
+      <div>
+        <label for="f_payMin">Their range, low</label>
+        <input id="f_payMin" placeholder="125000" inputmode="numeric">
+      </div>
+      <div>
+        <label for="f_payMax">Their range, high</label>
+        <input id="f_payMax" placeholder="160000" inputmode="numeric">
+      </div>
+      <div>
+        <label for="f_payKind">Which is it</label>
+        <select id="f_payKind">
+          <option value="OTE">OTE, base plus bonus</option>
+          <option value="base">Base only</option>
+          <option value="total">Total comp incl equity</option>
+          <option value="unstated">Not stated</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="f_yearsReq">Years of experience they ask for</label>
+        <input id="f_yearsReq" placeholder="6" inputmode="numeric">
+      </div>
+      <div>
+        <label for="f_headcount">Company headcount, if you know it</label>
+        <input id="f_headcount" placeholder="247" inputmode="numeric">
+      </div>
+    </div>
+    <div id="fitRead" class="note hidden"></div>
+
     <label for="f_jd">Job description</label>
     <textarea id="f_jd" rows="8" placeholder="Paste the full posting text. This works much better than a link, since most job boards block automated fetching."></textarea>
   </section>
@@ -239,6 +270,24 @@
     <textarea id="f_dossier" rows="6" placeholder="Paste the dossier from step 1 here. Every later step reuses it, so you research each company once."></textarea>
     <label for="f_predicted">Predicted questions <span id="predBadge" class="badge"></span></label>
     <textarea id="f_predicted" rows="6" placeholder="Paste the predictions from step 4 here. Steps 5 and 6 work from them."></textarea>
+    <label for="f_materials">What I actually sent them <span class="badge" id="matBadge"></span></label>
+    <textarea id="f_materials" rows="6" placeholder="Paste the resume and answers you actually submitted. Interviewers ask about what you wrote, and in three weeks you will not remember."></textarea>
+
+    <div class="row3">
+      <div>
+        <label for="f_appliedOn">Applied on</label>
+        <input id="f_appliedOn" type="date">
+      </div>
+      <div>
+        <label for="f_nextAction">Next action</label>
+        <input id="f_nextAction" placeholder="Ask X for a referral">
+      </div>
+      <div>
+        <label for="f_nextBy">By when</label>
+        <input id="f_nextBy" type="date">
+      </div>
+    </div>
+
     <label for="f_notes">Interview notes, for the debrief</label>
     <textarea id="f_notes" rows="5" placeholder="Straight after the interview: what they asked, what you fumbled, what they said about the role. Step 7 turns this into profile updates."></textarea>
   </section>
@@ -329,8 +378,14 @@ Launches, funding, exec changes, layoffs, earnings, press. Sorted by what someon
 ## 6. Team texture
 One paragraph on formal versus casual, fast versus deliberate, flat versus layered, and the evidence. Use the posting's own voice, the blog's tone, how employees write publicly, Glassdoor patterns (patterns only, never one review). Tag [INFERRED]. End with how formal her answers should be.
 
-## 7. People
-LinkedIn blocks automated access. Do not attempt it and do not invent profile contents. Search what is publicly indexed on named interviewers (talks, podcasts, bylines, personal sites). Then give a manual lookup list of 3 to 6 people worth opening by hand, each with why they matter and the one thing to look for.
+## 7. People, and specifically anyone whose path crosses mine
+LinkedIn blocks automated access. Do not attempt it and do not invent profile contents. Search what is publicly indexed on named interviewers (talks, podcasts, bylines, personal sites).
+
+**Then run this search deliberately, because it is the highest value thing in this section.** Look for anyone at this company, especially in or above this function, who overlaps with my history: former Uber or Uber-owned companies (Drizly, Postmates), Unity, ironSource, Tapjoy, AppLovin or mobile ad tech generally, Washington State University, or Seattle, San Francisco and New York. Press releases announcing executive hires are the best source, because they list prior employers explicitly. A real overlap is worth more than any other fact in this dossier: it is checkable, it is specific to me, and no other candidate has it.
+
+If you find one, say exactly what the overlap is, whether the dates actually coincide, and how I should reference it without overclaiming a relationship I do not have.
+
+Then give a manual lookup list of 3 to 6 people worth opening by hand, each with why they matter and the one thing to look for.
 
 ## 8. The tension
 One paragraph. What is genuinely interesting or unresolved here right now, the way a smart outsider would put it over coffee. Not a criticism, not a pitch.
@@ -425,6 +480,44 @@ function qList(a){
   }).join("\n\n");
 }
 
+function compBlock(a){
+  const bits = [];
+  if (a.payMin || a.payMax){
+    const kind = a.payKind === "unstated" ? "" : ` (stated as ${a.payKind})`;
+    bits.push(`Posted pay: ${a.payMin ? "$"+a.payMin : "?"} to ${a.payMax ? "$"+a.payMax : "?"}${kind}.`);
+  }
+  if (a.yearsReq) bits.push(`They ask for ${a.yearsReq}+ years of experience.`);
+  if (a.headcount) bits.push(`Headcount: ${a.headcount}.`);
+  if (!bits.length) return "";
+  return `\nWHAT I ALREADY KNOW ABOUT THE TERMS\n${bits.join("\n")}\n`;
+}
+
+function verdictBlock(){
+  return `===== PART 0: SHOULD I EVEN DO THIS =====
+
+Before anything else, and in under 200 words. My search criteria are in my profile; use them as hard
+filters, not preferences.
+
+## Verdict
+**Apply**, **Apply only with a referral**, or **Skip**. First line, no preamble.
+
+## Against my criteria
+One line each for location and work model, company size, pay, and years of experience required.
+Say pass, fail, or unknown, and what the posting or research actually says. Do not guess at pay or
+headcount; write unknown.
+
+## On pay specifically
+If a range is posted as OTE, say plainly that base is lower than the headline and that the base to
+variable split is the number that matters. Compare their ceiling to my target on **base**, not on
+total, because base is guaranteed and variable is not. If the split is unknown, say that is the
+first question to ask rather than treating the total as the answer.
+
+If the verdict is Skip, still do the rest, but say once at the top what would have to change for it
+to be worth my time. Do not soften the verdict to be encouraging.
+
+`;
+}
+
 function oneShotPrompt(a){
   const qs = qList(a);
   const known = a.dossier.trim();
@@ -432,7 +525,7 @@ function oneShotPrompt(a){
 
 ${known ? "I already have research on this company, at the bottom. Skip part 1." : ""}
 
-===== PART 1: RESEARCH THE COMPANY =====
+${verdictBlock()}===== PART 1: RESEARCH THE COMPANY =====
 
 ${known ? "(already done, see MY EXISTING RESEARCH below)" : RESEARCH}
 
@@ -535,7 +628,7 @@ Anything marked [NEEDS DETAIL] or [DAYNA] that would have improved this specific
 to go find out. Short and concrete.
 
 ${known ? `\n===== MY EXISTING RESEARCH =====\n\n${known}\n` : ""}
-${jdBlock(a)}
+${compBlock(a)}${jdBlock(a)}
 
 ===== MY PROFILE =====
 
@@ -728,6 +821,17 @@ function renderApp(){
   $("f_company").value = a.company || "";
   $("f_role").value    = a.role || "";
   $("f_url").value     = a.url || "";
+  $("f_payMin").value  = a.payMin || "";
+  $("f_payMax").value  = a.payMax || "";
+  $("f_payKind").value = a.payKind || "OTE";
+  $("f_yearsReq").value= a.yearsReq || "";
+  $("f_headcount").value = a.headcount || "";
+  $("f_appliedOn").value = a.appliedOn || "";
+  $("f_nextAction").value = a.nextAction || "";
+  $("f_nextBy").value  = a.nextBy || "";
+  $("f_materials").value = a.materials || "";
+  $("matBadge").textContent = (a.materials||"").trim() ? `${(a.materials||"").length.toLocaleString()} chars saved` : "";
+  renderFit(a);
   $("f_jd").value      = a.jd || "";
   $("f_who").value     = a.who || "";
   $("f_round").value   = a.round || "Hiring manager";
@@ -743,6 +847,40 @@ function renderApp(){
 
   renderQuestions(a);
   renderSteps(a);
+}
+
+// A blunt read against her own stated criteria, computed locally so it costs nothing
+// and appears before she spends a run on a role she would decline.
+function renderFit(a){
+  const el = $("fitRead");
+  const rows = [], flags = [];
+  const n = v => { const x = parseInt(String(v).replace(/[^0-9]/g,""), 10); return isFinite(x) ? x : null; };
+
+  const hi = n(a.payMax), lo = n(a.payMin);
+  if (hi){
+    const kind = a.payKind === "base" ? "base" : a.payKind === "total" ? "total comp" : "OTE";
+    rows.push(`Posted: ${lo ? "$"+lo.toLocaleString()+" to " : "up to "}$${hi.toLocaleString()} ${kind}`);
+    if (a.payKind === "OTE")
+      flags.push("Posted as OTE, so base is lower than the top number. Ask for the base and variable split before you judge it.");
+  } else {
+    flags.push("No pay range recorded. If the posting states one, put it in. If it does not, that is worth knowing too.");
+  }
+
+  const yrs = n(a.yearsReq);
+  if (yrs && yrs > 5)
+    flags.push(`They ask for ${yrs}+ years. You have roughly 4.5 of professional experience, so this is a real filter, not a soft preference.`);
+
+  const hc = n(a.headcount);
+  if (hc){
+    rows.push(`Headcount: ${hc.toLocaleString()}`);
+    if (hc < 4000) flags.push(`${hc.toLocaleString()} people is under your stated 4,000+ criterion.`);
+  }
+
+  if (!rows.length && !flags.length){ el.classList.add("hidden"); return; }
+  el.classList.remove("hidden");
+  el.classList.toggle("warn", flags.length > 0);
+  el.innerHTML = (rows.length ? `<div style="font-family:var(--mono);font-size:12px;margin-bottom:${flags.length?8:0}px">${rows.join(" &nbsp;·&nbsp; ")}</div>` : "")
+    + (flags.length ? `<strong>Before you spend time on this:</strong><ul style="margin:6px 0 0;padding-left:18px">${flags.map(f=>`<li>${f}</li>`).join("")}</ul>` : "");
 }
 
 function renderQuestions(a){
@@ -824,7 +962,9 @@ $("appSel").onchange = e => { S.activeId = e.target.value || null; render(); };
 
 $("addApp").onclick = () => {
   const a = {id:uid(), company:"", role:"", url:"", jd:"", who:"", round:"Hiring manager",
-             stage:"Researching", questions:[], dossier:"", predicted:"", notes:"", createdAt:Date.now()};
+             stage:"Researching", questions:[], dossier:"", predicted:"", notes:"", createdAt:Date.now(),
+             payMin:"", payMax:"", payKind:"OTE", yearsReq:"", headcount:"",
+             appliedOn:"", nextAction:"", nextBy:"", materials:""};
   S.apps.unshift(a); S.activeId = a.id; render();
   $("f_company").focus();
 };
@@ -840,8 +980,11 @@ $("delApp").onclick = () => {
 // field bindings
 [["f_company","company"],["f_role","role"],["f_url","url"],["f_jd","jd"],["f_who","who"],
  ["f_round","round"],["f_stage","stage"],["f_dossier","dossier"],["f_predicted","predicted"],
- ["f_notes","notes"]].forEach(([id, key]) => {
-  $(id).addEventListener("input", () => {
+ ["f_notes","notes"],["f_payMin","payMin"],["f_payMax","payMax"],["f_payKind","payKind"],
+ ["f_yearsReq","yearsReq"],["f_headcount","headcount"],["f_appliedOn","appliedOn"],
+ ["f_nextAction","nextAction"],["f_nextBy","nextBy"],["f_materials","materials"]].forEach(([id, key]) => {
+  const ev = $(id).tagName === "SELECT" ? "change" : "input";
+  $(id).addEventListener(ev, () => {
     const a = active(); if (!a) return;
     a[key] = $(id).value;
     save();
@@ -851,6 +994,9 @@ $("delApp").onclick = () => {
         a[key] ? `stored, ${a[key].length.toLocaleString()} chars` : "empty";
       $(key === "dossier" ? "dossierBadge" : "predBadge").style.color = a[key] ? "var(--accent)" : "var(--muted)";
     }
+    if (["payMin","payMax","payKind","yearsReq","headcount"].includes(key)) renderFit(a);
+    if (key === "materials")
+      $("matBadge").textContent = a.materials.trim() ? `${a.materials.length.toLocaleString()} chars saved` : "";
     if (key === "notes") renderSteps(a);
   });
 });

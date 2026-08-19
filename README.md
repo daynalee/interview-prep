@@ -18,6 +18,18 @@ and demographic fields are filtered out; salary expectations are deliberately le
 Ashby and Lever do not expose application questions, so add those by hand. Any other board:
 paste the description yourself.
 
+## It tells you not to bother, before you spend anything
+
+Put their posted range, the years they ask for, and the headcount into the role fields and the page
+gives you an immediate local read against your own criteria. No prompt, no model, no cost. If a
+role fails your filters you find out in ten seconds instead of after an hour of tailoring.
+
+Pay gets special handling because it is where the mistakes happen. A range posted as **OTE** is
+base plus bonus, so the headline is not the guaranteed money. The base to variable split is the
+number that decides whether an offer clears your floor, it is almost never published, and it is the
+first thing to ask. Comparing your target against their *total* is how people talk themselves into
+and out of the wrong roles.
+
 ## One link in, four things out
 
 Paste the posting URL, press **Fetch**, press **Do everything for this role**. One prompt, one
@@ -30,6 +42,15 @@ paste into Claude, and you get:
 4. **The interview questions to expect**, ranked into near certain, from the posting, from the
    company, the ones you should fear, and curveballs, **with drafted answers**, a spine for each,
    and the follow-up probes that come next.
+
+Every run opens with a **verdict**: apply, apply only with a referral, or skip, scored against your
+criteria. It is instructed not to soften it to be encouraging.
+
+The research pass also runs one search deliberately: **anyone at the company whose career overlaps
+yours.** Former employers, schools, cities. Executive hire press releases name prior employers
+outright. A real overlap beats every other fact in a dossier, because it is checkable, specific to
+you, and no other candidate has it. That search is what turned up an ex-Uber ads leader at
+MyFitnessPal, which was the strongest thing in that entire application.
 
 The resume tailoring is allowed to reorder, reweight and re-word. It is not allowed to invent a
 bullet, inflate a number, or move a date.
