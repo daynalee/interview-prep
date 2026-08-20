@@ -66,6 +66,18 @@
   .badge{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
   .selrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .selrow select{flex:1;min-width:220px}
+  table.pipe{width:100%;border-collapse:collapse;font-size:13px}
+  table.pipe th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--muted);font-weight:600;padding:0 10px 7px 0;border-bottom:1px solid var(--line)}
+  table.pipe td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  table.pipe tr:last-child td{border-bottom:none}
+  table.pipe tr.on td{background:var(--accent-soft)}
+  table.pipe a{color:var(--ink);text-decoration:none;font-weight:600;cursor:pointer}
+  table.pipe a:hover{color:var(--accent)}
+  .pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;
+    border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .pill.due{border-color:var(--warn);color:var(--warn)}
+  .pill.go{border-color:var(--accent);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -137,12 +149,33 @@
       </div>
     </div>
   </details>
+  <div class="row">
+    <div>
+      <label for="floorN">My floor, total comp</label>
+      <input id="floorN" placeholder="145000" inputmode="numeric">
+    </div>
+    <div>
+      <label for="targetN">Top of my range</label>
+      <input id="targetN" placeholder="200000" inputmode="numeric">
+    </div>
+  </div>
+  <p class="hint" style="margin-bottom:12px">
+    Used to score every role against your own floor. Stored in this browser only, never sent
+    anywhere and never in this site's source. Leave blank to skip the check.
+  </p>
+
   <textarea id="prof" rows="12" placeholder="Paste your profile, or press Load from file."></textarea>
   <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <button id="pickProf" class="primary">Load from file</button>
     <input id="profFile" type="file" accept=".md,.txt,text/plain,text/markdown" class="hidden">
     <span id="profStat" class="hint" style="margin:0"></span>
   </div>
+</section>
+
+<section class="panel" id="pipePanel">
+  <h2>Pipeline <span class="badge" id="pipeCount"></span></h2>
+  <div id="pipe"></div>
+  <p class="hint" id="pipeEmpty">Nothing yet. Press New below to add the first role.</p>
 </section>
 
 <section class="panel">
@@ -636,6 +669,33 @@ ${S.profile.trim()}`;
 }
 
 const PROMPTS = {
+  comp: a => `${header(a, "Tell me what this role actually pays in the market, so I can set my floor from evidence instead of from my current salary.")}
+${compBlock(a)}
+Search for real compensation data for this title, at this company size, in this location. Use levels.fyi, Glassdoor, Levels, Blind, Built In, state pay-transparency filings, and other postings for the same title at comparable companies. Prefer postings and filings that state a number over aggregator estimates, and say which is which.
+
+## What this title pays
+A range for base, and separately for total, at this company size and location. Say how many data points you found and how confident you are. If the data is thin, say so rather than averaging noise.
+
+## How their posted range compares
+Where their range sits against the market: below, at, or above. If posted as OTE, estimate the likely base to variable split for this kind of role and say plainly that the split is unpublished and worth asking.
+
+## What I should ask for
+A specific number to name, and the reasoning. Account for these, from my profile: I am under the stated years of experience for many of the roles I am targeting, which weakens a stretch ask; I am relocating to New York, so use NY metro data; and I was underpaid once after a contractor to full-time conversion, so do not anchor anything on my current salary.
+
+## The negotiation shape
+What is likely flexible here and what is not, given the company size and ownership. Where PE-owned, be explicit that equity is usually options or profit interests that only pay on an exit, not an annual amount, so it should not be counted toward a total comp target.
+
+## What would change the number
+The one or two things that would move their offer up: a competing offer, a specific scarce skill, a level change in title.
+
+Never use em dashes or en dashes. Be concrete. If you cannot find real data, say that instead of guessing.
+
+${jdBlock(a)}
+
+===== MY PROFILE =====
+
+${S.profile.trim()}`,
+
   research: a => `${header(a, "Research this company for me before I go further.")}\n\n${RESEARCH}\n\n${jdBlock(a)}`,
 
   screen: a => `${header(a, "Decide whether this role is worth my time. Be a filter, not a cheerleader.")}
@@ -750,11 +810,26 @@ ${jdBlock(a)}`,
 
 Here is what I remember. Ask me follow-up questions if something important is missing, then produce:
 
-## What to add to my profile
-Specific edits to my me/ files: new stories, numbers, corrections, questions I was asked that I had no answer for. Write them as text I can paste straight in.
+## Edits to make, file by file
+This is the important section and it should be the longest. My profile is a set of files, so give me edits addressed to each one, as text I can paste straight in with no rewriting. Use these headings only where you actually have something:
+
+**me/01-story-bank.md** New stories worth adding, written in the same shape as the existing ones (Answers / Situation / Action / Result / how to tell it). Also: any existing story that came out weaker than it reads on paper, and what to change about how it is told. If I got asked for a story I did not have, write the stub with `[DAYNA]` marking what I need to go find out.
+
+**me/02-metrics.md** Any number I quoted that I could not break down when probed, any number I got wrong, and any new figure that came up. Flag anything I should verify before saying again.
+
+**me/04-voice-samples.md** If my notes contain anything I actually said out loud, add it verbatim. Spoken samples are the one register this file is missing, so even a fragment is worth keeping.
+
+**me/05-gaps.md** Any question that exposed a gap with no prepared bridge. Write the gap and a first attempt at the bridge. If an existing bridge did not land, say what to change.
+
+**me/06-resume.md** Anything they reacted to on the resume, positively or otherwise, and anything they asked about that the resume made them ask.
+
+For each edit, one line on why, so I can tell later whether it was a real signal or one interviewer's preference.
 
 ## What went badly and why
-Honest read. Distinguish a preparation gap from a fit problem from bad luck.
+Honest read. Distinguish a preparation gap from a fit problem from bad luck, because the fix is different for each. Do not soften this.
+
+## What to stop doing
+Any habit visible in my notes: over-explaining, hedging, answering a question I was not asked, going long. One or two, specific, with the moment it showed up.
 
 ## Follow-up note
 A short thank-you note, five sentences maximum, referencing one specific thing from the conversation. No flattery, no restating my qualifications.
@@ -773,6 +848,7 @@ ${profileBlock()}`
 
 const STEPS = [
   {k:"research", label:"1. Research the company", note:"Web search. Paste the dossier back below so every later step reuses it."},
+  {k:"comp",     label:"1b. What does this actually pay",  note:"Market data for this title and city, so your floor comes from evidence and not from your last salary."},
   {k:"screen",   label:"2. Should I apply",       note:"Filters the role against your criteria. Built to say skip."},
   {k:"answers",  label:"3. Application answers",  note:"Answers your exact questions with limits, or full materials if you added none."},
   {k:"predict",  label:"4. Predict my questions", note:"Ranked by likelihood and by where you are weak. Paste back below."},
@@ -784,6 +860,7 @@ const STEPS = [
 /* ---------- render ---------- */
 function render(){
   renderBadges();
+  renderPipeline();
   renderAppList();
   renderApp();
   save();
@@ -851,17 +928,97 @@ function renderApp(){
 
 // A blunt read against her own stated criteria, computed locally so it costs nothing
 // and appears before she spends a run on a role she would decline.
+// The pipeline. Its real job is to surface what is overdue and what has no next step,
+// because those are the two ways an application quietly dies.
+function today(){ return new Date().toISOString().slice(0,10); }
+
+function nudgeFor(a){
+  const t = today();
+  if (a.nextBy && a.nextAction && a.nextBy < t) return {cls:"due", text:"overdue: " + a.nextAction};
+  if (a.nextAction && a.nextBy)                 return {cls:"", text:"by " + a.nextBy + ": " + a.nextAction};
+  if (a.nextAction)                             return {cls:"", text:a.nextAction};
+
+  // No next action recorded. Say what it should be.
+  if (a.stage === "Researching" && !a.jd.trim())        return {cls:"due", text:"add the posting"};
+  if (a.stage === "Researching")                        return {cls:"go",  text:"run it, then decide"};
+  if (a.stage === "Applying")                           return {cls:"due", text:"submit it, or drop it"};
+  if (a.stage === "Applied" && !a.appliedOn)            return {cls:"due", text:"set the date you applied"};
+  if (a.stage === "Applied")                            return {cls:"due", text:"chase a referral"};
+  if (a.stage === "Interviewing" && !a.predicted.trim())return {cls:"due", text:"prep: predict the questions"};
+  if (a.stage === "Interviewing" && !a.notes.trim())    return {cls:"due", text:"debrief while it is fresh"};
+  if (a.stage === "Interviewing")                       return {cls:"go",  text:"debrief into your profile"};
+  return {cls:"", text:""};
+}
+
+const num = v => { const x = parseInt(String(v||"").replace(/[^0-9]/g,""), 10); return isFinite(x) ? x : null; };
+const myFloor  = () => num(S.floor);
+const myTarget = () => num(S.target);
+
+function renderPipeline(){
+  const apps = S.apps || [];
+  $("pipeEmpty").classList.toggle("hidden", apps.length > 0);
+  $("pipeCount").textContent = apps.length ? `${apps.length} live` : "";
+  if (!apps.length){ $("pipe").innerHTML = ""; return; }
+
+  const order = ["Interviewing","Applied","Applying","Researching","Offer","Closed"];
+  const sorted = apps.slice().sort((x,y) => {
+    const d = order.indexOf(x.stage) - order.indexOf(y.stage);
+    return d !== 0 ? d : (y.createdAt || 0) - (x.createdAt || 0);
+  });
+
+  const rows = sorted.map(a => {
+    const n = nudgeFor(a);
+    const i = apps.indexOf(a);
+    return `<tr class="${a.id === S.active ? "on" : ""}">
+      <td><a data-go="${i}">${a.company || "untitled"}</a><div class="hint" style="margin:2px 0 0">${a.role || ""}</div></td>
+      <td><span class="pill">${a.stage}</span></td>
+      <td>${a.payMax ? "$" + Number(a.payMax).toLocaleString() + " " + (a.payKind === "unstated" ? "" : a.payKind) : "<span class=\"hint\" style=\"margin:0\">pay unknown</span>"}</td>
+      <td>${n.text ? `<span class="pill ${n.cls}">${n.text}</span>` : ""}</td>
+    </tr>`;
+  }).join("");
+
+  const due = sorted.filter(a => nudgeFor(a).cls === "due").length;
+  $("pipe").innerHTML =
+    `<table class="pipe"><thead><tr><th>Role</th><th>Stage</th><th>Pay</th><th>Next</th></tr></thead>
+     <tbody>${rows}</tbody></table>` +
+    (due ? `<p class="hint" style="color:var(--warn);margin-top:10px"><strong>${due} need${due===1?"s":""} something from you.</strong> These are the ones that die quietly.</p>` : "");
+}
+
+$("floorN").value  = S.floor  || "";
+$("targetN").value = S.target || "";
+["floorN","targetN"].forEach(id => {
+  $(id).addEventListener("input", () => {
+    S[id === "floorN" ? "floor" : "target"] = $(id).value;
+    save(); const a = active(); if (a) renderFit(a); renderPipeline();
+  });
+});
+
+$("pipe").addEventListener("click", e => {
+  const i = e.target.getAttribute("data-go");
+  if (i === null) return;
+  S.active = S.apps[+i].id; save(); render();
+  document.querySelector("#appSel").scrollIntoView({behavior:"smooth", block:"center"});
+});
+
 function renderFit(a){
   const el = $("fitRead");
   const rows = [], flags = [];
-  const n = v => { const x = parseInt(String(v).replace(/[^0-9]/g,""), 10); return isFinite(x) ? x : null; };
-
+  const n = num;
   const hi = n(a.payMax), lo = n(a.payMin);
   if (hi){
     const kind = a.payKind === "base" ? "base" : a.payKind === "total" ? "total comp" : "OTE";
     rows.push(`Posted: ${lo ? "$"+lo.toLocaleString()+" to " : "up to "}$${hi.toLocaleString()} ${kind}`);
+    const f = myFloor();
+    if (f){
+      if (hi < f)
+        flags.push(`Their ceiling of $${hi.toLocaleString()} is below your floor of $${f.toLocaleString()}. Unless something else about this role is worth the gap, this is a skip.`);
+      else if (lo && lo >= f)
+        rows.push(`Whole range clears your $${f.toLocaleString()} floor`);
+      else
+        rows.push(`Clears your floor only near the top of their range`);
+    }
     if (a.payKind === "OTE")
-      flags.push("Posted as OTE, so base is lower than the top number. Ask for the base and variable split before you judge it.");
+      flags.push("Posted as OTE, so base is lower than the top number. Ask for the base and variable split before you judge it, because base is the guaranteed part.");
   } else {
     flags.push("No pay range recorded. If the posting states one, put it in. If it does not, that is worth knowing too.");
   }
@@ -997,6 +1154,7 @@ $("delApp").onclick = () => {
     if (["payMin","payMax","payKind","yearsReq","headcount"].includes(key)) renderFit(a);
     if (key === "materials")
       $("matBadge").textContent = a.materials.trim() ? `${a.materials.length.toLocaleString()} chars saved` : "";
+    if (["stage","company","role","nextAction","nextBy","appliedOn","payMax","payKind","predicted","notes","jd"].includes(key)) renderPipeline();
     if (key === "notes") renderSteps(a);
   });
 });

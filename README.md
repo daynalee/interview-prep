@@ -18,6 +18,20 @@ and demographic fields are filtered out; salary expectations are deliberately le
 Ashby and Lever do not expose application questions, so add those by hand. Any other board:
 paste the description yourself.
 
+## Pipeline first
+
+The top of the page is every role you are chasing, sorted so interviews come first, with a **Next**
+column that names the specific thing each one needs. Applications do not usually die because you
+were rejected; they die because nothing happened next. When there is no recorded next action the
+page infers one from the stage: submit it, set the date you applied, chase a referral, prep the
+questions, debrief while it is fresh. Anything overdue turns orange, with a count at the bottom.
+
+## Set your floor once
+
+Put your floor and the top of your range in the profile panel. Every role then gets scored against
+it: whole range clears your floor, clears only near the top, or their ceiling is below it and this
+is a skip. Stored in this browser only.
+
 ## It tells you not to bother, before you spend anything
 
 Put their posted range, the years they ask for, and the headcount into the role fields and the page
@@ -66,6 +80,10 @@ later steps reuse it.
 1. **Research the company.** Web search. Every claim tagged `[VERIFIED]` with a source URL,
    `[INFERRED]` with the reasoning, or `[UNKNOWN]`. Gaps are never filled with something
    plausible.
+1b. **What does this actually pay.** Market data for the title at this company size in this city,
+   from postings and filings rather than aggregator averages, plus a number to actually ask for and
+   what is likely flexible. Explicitly told not to anchor on your current salary, and to treat
+   PE equity as exit-contingent rather than annual comp.
 2. **Should I apply.** Scores the role against your stated criteria and returns Apply, Apply
    if you can get a referral, or Skip. Built to say no.
 3. **Application answers.** Answers their exact questions, each with its own length limit, or
@@ -77,8 +95,12 @@ later steps reuse it.
    follow-up drilling for the probes that come next, and six researched questions to ask them.
 6. **Practice out loud.** Claude interviews you one question at a time, probes your answers,
    pushes back, then critiques.
-7. **Debrief afterwards.** Turns your notes into concrete edits for your profile, so the next
-   application starts from a better version of you.
+7. **Debrief afterwards.** Turns your notes into paste-ready edits **addressed file by file**:
+   new stories for the story bank in the same shape as the existing ones, numbers you could not
+   break down when probed, anything you actually said out loud for the voice samples, gaps with no
+   prepared bridge, and what the resume made them ask. Plus what to stop doing. This is the only
+   part of the tool that compounds: run it four times and the profile is genuinely yours rather
+   than a reconstruction.
 
 ## Why it is built this way
 
