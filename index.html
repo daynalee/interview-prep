@@ -149,9 +149,13 @@
       </div>
     </div>
   </details>
-  <div class="row">
+  <div class="row3">
     <div>
-      <label for="floorN">My floor, total comp</label>
+      <label for="baseFloorN">Base floor</label>
+      <input id="baseFloorN" placeholder="120000" inputmode="numeric">
+    </div>
+    <div>
+      <label for="floorN">Total floor</label>
       <input id="floorN" placeholder="145000" inputmode="numeric">
     </div>
     <div>
@@ -160,8 +164,10 @@
     </div>
   </div>
   <p class="hint" style="margin-bottom:12px">
-    Used to score every role against your own floor. Stored in this browser only, never sent
-    anywhere and never in this site's source. Leave blank to skip the check.
+    Two floors, because they catch different problems. <strong>Total</strong> catches a role that
+    is simply cheap. <strong>Base</strong> catches one that is cheap but dressed up with bonus and
+    equity you may never see. Set base to the number you would be content with if the bonus paid
+    zero. Stored in this browser only. Leave either blank to skip that check.
   </p>
 
   <textarea id="prof" rows="12" placeholder="Paste your profile, or press Load from file."></textarea>
@@ -521,6 +527,10 @@ function compBlock(a){
   }
   if (a.yearsReq) bits.push(`They ask for ${a.yearsReq}+ years of experience.`);
   if (a.headcount) bits.push(`Headcount: ${a.headcount}.`);
+  const bf = myBaseFloor(), tf = myFloor(), tg = myTarget();
+  if (bf) bits.push(`My base floor is $${bf.toLocaleString()}. Base is the number I judge an offer on, because bonus and equity are not guaranteed.`);
+  if (tf) bits.push(`My total comp range is $${tf.toLocaleString()}${tg ? " to $" + tg.toLocaleString() : "+"}.`);
+  if (bf || tf) bits.push(`Compare like with like: a posted base range against my base floor, a posted OTE or total against my total floor. Never compare a base number to my total floor or the other way round. If the split is unpublished, say that is the first thing to ask rather than treating the headline as the answer.`);
   if (!bits.length) return "";
   return `\nWHAT I ALREADY KNOW ABOUT THE TERMS\n${bits.join("\n")}\n`;
 }
@@ -953,6 +963,7 @@ function nudgeFor(a){
 const num = v => { const x = parseInt(String(v||"").replace(/[^0-9]/g,""), 10); return isFinite(x) ? x : null; };
 const myFloor  = () => num(S.floor);
 const myTarget = () => num(S.target);
+const myBaseFloor = () => num(S.baseFloor);
 
 function renderPipeline(){
   const apps = S.apps || [];
@@ -984,11 +995,13 @@ function renderPipeline(){
     (due ? `<p class="hint" style="color:var(--warn);margin-top:10px"><strong>${due} need${due===1?"s":""} something from you.</strong> These are the ones that die quietly.</p>` : "");
 }
 
+$("baseFloorN").value = S.baseFloor || "";
 $("floorN").value  = S.floor  || "";
 $("targetN").value = S.target || "";
-["floorN","targetN"].forEach(id => {
+const FLOOR_KEY = {baseFloorN:"baseFloor", floorN:"floor", targetN:"target"};
+["baseFloorN","floorN","targetN"].forEach(id => {
   $(id).addEventListener("input", () => {
-    S[id === "floorN" ? "floor" : "target"] = $(id).value;
+    S[FLOOR_KEY[id]] = $(id).value;
     save(); const a = active(); if (a) renderFit(a); renderPipeline();
   });
 });
@@ -1008,17 +1021,36 @@ function renderFit(a){
   if (hi){
     const kind = a.payKind === "base" ? "base" : a.payKind === "total" ? "total comp" : "OTE";
     rows.push(`Posted: ${lo ? "$"+lo.toLocaleString()+" to " : "up to "}$${hi.toLocaleString()} ${kind}`);
-    const f = myFloor();
-    if (f){
-      if (hi < f)
-        flags.push(`Their ceiling of $${hi.toLocaleString()} is below your floor of $${f.toLocaleString()}. Unless something else about this role is worth the gap, this is a skip.`);
-      else if (lo && lo >= f)
-        rows.push(`Whole range clears your $${f.toLocaleString()} floor`);
+    // Compare like with like. A base number says almost nothing about total, and a
+    // total number says almost nothing about base.
+    const tf = myFloor(), bf = myBaseFloor();
+    const pk = a.payKind;
+
+    if (pk === "base" && bf){
+      if (hi < bf)
+        flags.push(`Their base ceiling of $${hi.toLocaleString()} is below your base floor of $${bf.toLocaleString()}.`);
+      else if (lo && lo >= bf)
+        rows.push(`Whole base range clears your $${bf.toLocaleString()} base floor`);
       else
-        rows.push(`Clears your floor only near the top of their range`);
+        rows.push(`Clears your base floor only near the top`);
     }
-    if (a.payKind === "OTE")
-      flags.push("Posted as OTE, so base is lower than the top number. Ask for the base and variable split before you judge it, because base is the guaranteed part.");
+    if (pk === "base" && tf)
+      flags.push(`This is a base-only range, so it says nothing about total. At a typical 80/20 split, $${hi.toLocaleString()} base is about $${Math.round(hi/0.8).toLocaleString()} OTE, and at 70/30 about $${Math.round(hi/0.7).toLocaleString()}. Ask what the bonus and equity add before judging it against your $${tf.toLocaleString()} total floor.`);
+
+    if (pk === "OTE"){
+      if (tf && hi < tf)
+        flags.push(`Their OTE ceiling of $${hi.toLocaleString()} is below your total floor of $${tf.toLocaleString()}, and OTE usually excludes equity, so the real total may be a little higher.`);
+      else if (tf)
+        rows.push(lo && lo >= tf ? `Whole OTE range clears your $${tf.toLocaleString()} total floor` : `Clears your total floor near the top of their OTE range`);
+      if (bf)
+        flags.push(`OTE is base plus bonus, so base is unknown. At 80/20 their $${hi.toLocaleString()} ceiling is about $${Math.round(hi*0.8).toLocaleString()} base, at 70/30 about $${Math.round(hi*0.7).toLocaleString()}. ${Math.round(hi*0.8) < bf ? `Even the 80/20 case lands under your $${bf.toLocaleString()} base floor, so get the split before going further.` : `Get the split, because that is what decides it against your $${bf.toLocaleString()} base floor.`}`);
+    }
+
+    if (pk === "total"){
+      if (tf && hi < tf) flags.push(`Their total ceiling of $${hi.toLocaleString()} is below your total floor of $${tf.toLocaleString()}.`);
+      else if (tf) rows.push(lo && lo >= tf ? `Whole range clears your total floor` : `Clears your total floor near the top`);
+      if (bf) flags.push(`Total comp includes equity, which at a private company only pays on an exit. Ask for the base separately before counting this against your $${bf.toLocaleString()} base floor.`);
+    }
   } else {
     flags.push("No pay range recorded. If the posting states one, put it in. If it does not, that is worth knowing too.");
   }
