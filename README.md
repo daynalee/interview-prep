@@ -115,6 +115,15 @@ requests and job boards block bots anyway. So it captures structure, stores what
 and builds the right prompt. Everything intelligent happens in Claude, on the plan you already
 have.
 
+**One paste, not one per question.** Claude labels its answers Q1, Q2 and so on, so paste the whole
+reply into the import box under the questions and the page splits it and drops each answer into the
+matching box. It strips the echoed question, markdown rules, and the bracketed self-reported count,
+then checks every answer against your limit and names the ones that are over. Non-sequential
+numbering is fine, so an answer set covering Q1, Q2 and Q6 lands correctly.
+
+Truly automatic filling, with no paste at all, requires an API key, because a static page cannot
+call a model. This gets the same result for one paste instead of six.
+
 **Per-question length limits with a real counter.** Paste an answer back into a question and
 your browser counts it. That is the count their form applies, and it is more reliable than a
 model's self-reported count.

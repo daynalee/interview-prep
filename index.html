@@ -274,6 +274,16 @@
       Add none and step 3 writes full application materials instead.
     </p>
     <div id="qWrap"></div>
+
+  <div class="note" style="margin-top:4px">
+    <label for="qImport" style="margin-top:0">Paste Claude's whole reply here and it fills every box above</label>
+    <textarea id="qImport" rows="4" placeholder="Paste the entire answer section. It finds Q1, Q2, Q3 and drops each answer into the matching question, then counts them against your limits."></textarea>
+    <div style="margin-top:9px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button id="qImportBtn" class="primary">Fill the answers</button>
+      <button id="qImportClear" class="ghost tiny">Clear</button>
+      <span id="qImportStat" class="hint" style="margin:0"></span>
+    </div>
+  </div>
     <button id="addQ">Add a question</button>
   </section>
 
@@ -1190,6 +1200,83 @@ $("delApp").onclick = () => {
     if (key === "notes") renderSteps(a);
   });
 });
+
+
+/* ---------- bulk import of answers ----------
+   Claude returns answers labelled Q1, Q2 and so on. Split on those markers and drop each
+   block into the matching question, so one paste replaces one paste per question. */
+
+function splitAnswers(raw){
+  const text = String(raw || "").replace(/\r/g, "");
+  // A marker is Q1 / Q1. / Q1: / **Q1.** / ### Q1 / 1. at the start of a line.
+  const re = /^[ \t]*(?:[#>*_\s]*)(?:\*\*)?\s*(?:Q(?:uestion)?\s*)?(\d{1,2})\s*[.):\]]?\s*(?:\*\*)?[ \t]*$|^[ \t]*(?:[#>*_]*\s*)(?:\*\*)?\s*(?:Q(?:uestion)?\s*)(\d{1,2})\s*[.):\]]\s*(?:\*\*)?[ \t]*(.*)$/gim;
+
+  const marks = [];
+  let m;
+  while ((m = re.exec(text)) !== null){
+    const n = parseInt(m[1] || m[2], 10);
+    if (!n || n > 40) continue;
+    marks.push({n, start: m.index, afterMarker: re.lastIndex, inline: (m[3] || "").trim()});
+  }
+  if (!marks.length) return {};
+
+  const out = {};
+  marks.forEach((mk, i) => {
+    const end = i + 1 < marks.length ? marks[i+1].start : text.length;
+    let body = (mk.inline ? mk.inline + "\n" : "") + text.slice(mk.afterMarker, end);
+
+    body = body
+      // drop a leading echo of the question itself, and any bold heading line
+      .replace(/^\s*(?:\*\*)?[^\n]{0,200}\?(?:\*\*)?\s*\n/, "")
+      // markdown horizontal rules first, so a trailing count is left at the end
+      .replace(/^\s*[-*_]{3,}\s*$/gm, "")
+      .trim()
+      // then the count the prompt asks for, e.g. [487 characters]
+      .replace(/\s*\[\s*~?\d[\d,]*\s*(?:characters?|chars?|words?)\s*\]\s*$/i, "")
+      .trim();
+
+    if (body) out[mk.n] = body;
+  });
+  return out;
+}
+
+$("qImportBtn").onclick = () => {
+  const a = active(); if (!a) return;
+  const qs = a.questions || [];
+  if (!qs.length){ $("qImportStat").textContent = "No questions to fill. Fetch the posting or add them first."; return; }
+
+  const found = splitAnswers($("qImport").value);
+  const keys = Object.keys(found);
+  if (!keys.length){
+    $("qImportStat").textContent = "Could not find any Q1, Q2 markers in that. Paste the section that has the numbered answers.";
+    return;
+  }
+
+  let filled = 0, over = [];
+  keys.forEach(k => {
+    const i = parseInt(k, 10) - 1;
+    if (i < 0 || i >= qs.length) return;
+    qs[i].answer = found[k];
+    filled++;
+    const lim = parseInt(qs[i].limit, 10);
+    if (lim){
+      const n = qs[i].unit === "words"
+        ? found[k].trim().split(/\s+/).filter(Boolean).length
+        : found[k].length;
+      if (n > lim) over.push(`Q${k} is ${n.toLocaleString()} against a limit of ${lim.toLocaleString()}`);
+    }
+  });
+
+  save(); renderQuestions(a);
+  const extra = keys.length - filled;
+  $("qImportStat").innerHTML =
+    `Filled ${filled} of ${qs.length}.` +
+    (extra > 0 ? ` ${extra} answer${extra===1?"":"s"} had no matching question.` : "") +
+    (over.length ? ` <span style="color:var(--warn)"><strong>Over the limit:</strong> ${over.join("; ")}. Cut before you paste into their form.</span>`
+                 : (filled ? " All within their limits." : ""));
+};
+
+$("qImportClear").onclick = () => { $("qImport").value = ""; $("qImportStat").textContent = ""; };
 
 $("addQ").onclick = () => {
   const a = active(); if (!a) return;
